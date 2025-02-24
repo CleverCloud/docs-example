@@ -21,7 +21,7 @@ pip install .
 On development mode:
 
 ```shell
-pip install .
+pip install -e .\[dev\]
 ```
 
 3. Create `requirement.tx`:
@@ -51,6 +51,14 @@ python3 manage.py runserver
 Try accessing the webserver at http://127.0.0.1:8000/api/v1.0/
 
 ## Deploy on Clever Cloud
+
+Set impress on editable mode in `requirements.tx`:
+
+```
+impress @ file://${PWD}
+```
+
+will expand to the current working directory where your setup.py is located. This will allow pip to find and install the local impress package correctly
 
 Environment variables list:
 

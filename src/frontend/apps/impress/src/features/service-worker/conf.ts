@@ -6,7 +6,7 @@ export const SW_DEV_URL = [
   'https://impress-staging.beta.numerique.gouv.fr',
 ];
 
-export const SW_DEV_API = 'http://localhost:8071';
+export const SW_DEV_API = `${process.env.SW_DEV_API}`;
 
 export const SW_VERSION = `v-${process.env.NEXT_PUBLIC_BUILD_ID}`;
 
