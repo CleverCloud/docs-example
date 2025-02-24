@@ -34,6 +34,7 @@ MANIFEST
 *.pot
 
 # Environments
+.env
 .venv
 env/
 venv/
@@ -76,3 +77,4 @@ db.sqlite3
 .vscode/
 *.iml
 .devcontainer
+.clever.json
