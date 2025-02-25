@@ -28,10 +28,15 @@
     "server:test": "yarn COLLABORATION_SERVER run test"
   },
   "resolutions": {
-    "@types/node": "22.13.1",
     "@types/react-dom": "18.3.1",
     "@typescript-eslint/eslint-plugin": "8.23.0",
     "@typescript-eslint/parser": "8.23.0",
+    "prosemirror-view": "1.31.7",
+    "prosemirror-state": "1.4.3",
+    "prosemirror-model": "1.19.3",
+    "@blocknote/core": "0.23.2",
+    "@blocknote/react": "0.23.2",
+    "@types/node": "22.13.1",
     "eslint": "8.57.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
