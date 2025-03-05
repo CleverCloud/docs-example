@@ -118,21 +118,21 @@ class Base(Configuration):
     }
 
     # Media
-    AWS_S3_ENDPOINT_URL = values.Value(
-        environ_name="AWS_S3_ENDPOINT_URL", environ_prefix=None
+    CELLAR_ADDON_HOST = values.Value(
+        environ_name="CELLAR_ADDON_HOST", environ_prefix=None
     )
-    AWS_S3_ACCESS_KEY_ID = values.Value(
-        environ_name="AWS_S3_ACCESS_KEY_ID", environ_prefix=None
+    CELLAR_ADDON_KEY_ID = values.Value(
+        environ_name="CELLAR_ADDON_KEY_ID", environ_prefix=None
     )
-    AWS_S3_SECRET_ACCESS_KEY = values.Value(
-        environ_name="AWS_S3_SECRET_ACCESS_KEY", environ_prefix=None
+    CELLAR_ADDON_KEY_SECRET = values.Value(
+        environ_name="CELLAR_ADDON_KEY_SECRET", environ_prefix=None
     )
     AWS_S3_REGION_NAME = values.Value(
         environ_name="AWS_S3_REGION_NAME", environ_prefix=None
     )
-    AWS_STORAGE_BUCKET_NAME = values.Value(
+    CELLAR_STORAGE_BUCKET_NAME = values.Value(
         "impress-media-storage",
-        environ_name="AWS_STORAGE_BUCKET_NAME",
+        environ_name="CELLAR_STORAGE_BUCKET_NAME",
         environ_prefix=None,
     )
 

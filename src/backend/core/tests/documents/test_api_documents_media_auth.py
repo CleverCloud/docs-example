@@ -49,8 +49,8 @@ def test_api_documents_media_auth_anonymous_public():
     )
     assert response["X-Amz-Date"] == timezone.now().strftime("%Y%m%dT%H%M%SZ")
 
-    s3_url = urlparse(settings.AWS_S3_ENDPOINT_URL)
-    file_url = f"{settings.AWS_S3_ENDPOINT_URL:s}/impress-media-storage/{key:s}"
+    s3_url = urlparse(settings.CELLAR_ADDON_HOST)
+    file_url = f"{settings.CELLAR_ADDON_HOST:s}/impress-media-storage/{key:s}"
     response = requests.get(
         file_url,
         headers={
@@ -120,8 +120,8 @@ def test_api_documents_media_auth_authenticated_public_or_authenticated(reach):
     )
     assert response["X-Amz-Date"] == timezone.now().strftime("%Y%m%dT%H%M%SZ")
 
-    s3_url = urlparse(settings.AWS_S3_ENDPOINT_URL)
-    file_url = f"{settings.AWS_S3_ENDPOINT_URL:s}/impress-media-storage/{key:s}"
+    s3_url = urlparse(settings.CELLAR_ADDON_HOST)
+    file_url = f"{settings.CELLAR_ADDON_HOST:s}/impress-media-storage/{key:s}"
     response = requests.get(
         file_url,
         headers={
@@ -199,8 +199,8 @@ def test_api_documents_media_auth_related(via, mock_user_teams):
     )
     assert response["X-Amz-Date"] == timezone.now().strftime("%Y%m%dT%H%M%SZ")
 
-    s3_url = urlparse(settings.AWS_S3_ENDPOINT_URL)
-    file_url = f"{settings.AWS_S3_ENDPOINT_URL:s}/impress-media-storage/{key:s}"
+    s3_url = urlparse(settings.CELLAR_ADDON_HOST)
+    file_url = f"{settings.CELLAR_ADDON_HOST:s}/impress-media-storage/{key:s}"
     response = requests.get(
         file_url,
         headers={
