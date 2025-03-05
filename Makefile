@@ -30,8 +30,8 @@ GREEN := \033[1;32m
 
 # -- Database
 
-DB_HOST            = postgresql
-DB_PORT            = 5432
+POSTGRESQL_ADDON_HOST            = postgresql
+POSTGRESQL_ADDON_PORT            = 5432
 
 # -- Docker
 # Get the current user ID to use for docker run and docker exec commands

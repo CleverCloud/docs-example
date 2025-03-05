@@ -163,11 +163,11 @@ redis-master-0          1/1     Running   0          42s
 From here important informations you will need are :
 
 ```
-DB_HOST: postgres-postgresql
-DB_NAME: impress
-DB_USER: dinum
-DB_PASSWORD: pass
-DB_PORT: 5432
+POSTGRESQL_ADDON_HOST: postgres-postgresql
+POSTGRESQL_ADDON_DB: impress
+POSTGRESQL_ADDON_USER: dinum
+POSTGRESQL_ADDON_PASSWORD: pass
+POSTGRESQL_ADDON_PORT: 5432
 POSTGRES_DB: impress
 POSTGRES_USER: dinum
 POSTGRES_PASSWORD: pass

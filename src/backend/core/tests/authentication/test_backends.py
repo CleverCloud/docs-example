@@ -26,10 +26,10 @@ def test_authentication_getter_existing_user_no_email(
     """
 
     klass = OIDCAuthenticationBackend()
-    db_user = UserFactory()
+    POSTGRESQL_ADDON_USER = UserFactory()
 
     def get_userinfo_mocked(*args):
-        return {"sub": db_user.sub}
+        return {"sub": POSTGRESQL_ADDON_USER.sub}
 
     monkeypatch.setattr(OIDCAuthenticationBackend, "get_userinfo", get_userinfo_mocked)
 
@@ -38,7 +38,7 @@ def test_authentication_getter_existing_user_no_email(
             access_token="test-token", id_token=None, payload=None
         )
 
-    assert user == db_user
+    assert user == POSTGRESQL_ADDON_USER
 
 
 def test_authentication_getter_existing_user_via_email(
@@ -50,10 +50,10 @@ def test_authentication_getter_existing_user_via_email(
     """
 
     klass = OIDCAuthenticationBackend()
-    db_user = UserFactory()
+    POSTGRESQL_ADDON_USER = UserFactory()
 
     def get_userinfo_mocked(*args):
-        return {"sub": "123", "email": db_user.email}
+        return {"sub": "123", "email": POSTGRESQL_ADDON_USER.email}
 
     monkeypatch.setattr(OIDCAuthenticationBackend, "get_userinfo", get_userinfo_mocked)
 
@@ -62,7 +62,7 @@ def test_authentication_getter_existing_user_via_email(
             access_token="test-token", id_token=None, payload=None
         )
 
-    assert user == db_user
+    assert user == POSTGRESQL_ADDON_USER
 
 
 def test_authentication_getter_email_none(monkeypatch):
@@ -71,7 +71,7 @@ def test_authentication_getter_email_none(monkeypatch):
     """
 
     klass = OIDCAuthenticationBackend()
-    db_user = UserFactory(email=None)
+    POSTGRESQL_ADDON_USER = UserFactory(email=None)
 
     def get_userinfo_mocked(*args):
         user_info = {"sub": "123"}
@@ -87,7 +87,7 @@ def test_authentication_getter_email_none(monkeypatch):
 
     # Since the sub and email didn't match, it should create a new user
     assert models.User.objects.count() == 2
-    assert user != db_user
+    assert user != POSTGRESQL_ADDON_USER
     assert user.sub == "123"
 
 
@@ -100,14 +100,14 @@ def test_authentication_getter_existing_user_no_fallback_to_email_allow_duplicat
     """
 
     klass = OIDCAuthenticationBackend()
-    db_user = UserFactory()
+    POSTGRESQL_ADDON_USER = UserFactory()
 
     # Set the setting to False
     settings.OIDC_FALLBACK_TO_EMAIL_FOR_IDENTIFICATION = False
     settings.OIDC_ALLOW_DUPLICATE_EMAILS = True
 
     def get_userinfo_mocked(*args):
-        return {"sub": "123", "email": db_user.email}
+        return {"sub": "123", "email": POSTGRESQL_ADDON_USER.email}
 
     monkeypatch.setattr(OIDCAuthenticationBackend, "get_userinfo", get_userinfo_mocked)
 
@@ -117,7 +117,7 @@ def test_authentication_getter_existing_user_no_fallback_to_email_allow_duplicat
 
     # Since the sub doesn't match, it should create a new user
     assert models.User.objects.count() == 2
-    assert user != db_user
+    assert user != POSTGRESQL_ADDON_USER
     assert user.sub == "123"
 
 
@@ -130,14 +130,14 @@ def test_authentication_getter_existing_user_no_fallback_to_email_no_duplicate(
     """
 
     klass = OIDCAuthenticationBackend()
-    db_user = UserFactory()
+    POSTGRESQL_ADDON_USER = UserFactory()
 
     # Set the setting to False
     settings.OIDC_FALLBACK_TO_EMAIL_FOR_IDENTIFICATION = False
     settings.OIDC_ALLOW_DUPLICATE_EMAILS = False
 
     def get_userinfo_mocked(*args):
-        return {"sub": "123", "email": db_user.email}
+        return {"sub": "123", "email": POSTGRESQL_ADDON_USER.email}
 
     monkeypatch.setattr(OIDCAuthenticationBackend, "get_userinfo", get_userinfo_mocked)
 
@@ -399,12 +399,12 @@ def test_authentication_getter_existing_disabled_user_via_sub(
     """
 
     klass = OIDCAuthenticationBackend()
-    db_user = UserFactory(is_active=False)
+    POSTGRESQL_ADDON_USER = UserFactory(is_active=False)
 
     def get_userinfo_mocked(*args):
         return {
-            "sub": db_user.sub,
-            "email": db_user.email,
+            "sub": POSTGRESQL_ADDON_USER.sub,
+            "email": POSTGRESQL_ADDON_USER.email,
             "first_name": "John",
             "last_name": "Doe",
         }
@@ -429,12 +429,12 @@ def test_authentication_getter_existing_disabled_user_via_email(
     """
 
     klass = OIDCAuthenticationBackend()
-    db_user = UserFactory(is_active=False)
+    POSTGRESQL_ADDON_USER = UserFactory(is_active=False)
 
     def get_userinfo_mocked(*args):
         return {
             "sub": "random",
-            "email": db_user.email,
+            "email": POSTGRESQL_ADDON_USER.email,
             "first_name": "John",
             "last_name": "Doe",
         }

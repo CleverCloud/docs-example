@@ -41,11 +41,11 @@ backend:
     LOGIN_REDIRECT_URL_FAILURE: https://impress.127.0.0.1.nip.io
     LOGOUT_REDIRECT_URL: https://impress.127.0.0.1.nip.io
     POSTHOG_KEY: "{'id': 'posthog_key', 'host': 'https://product.impress.127.0.0.1.nip.io'}"
-    DB_HOST: postgresql
-    DB_NAME: impress
-    DB_USER: dinum
-    DB_PASSWORD: pass
-    DB_PORT: 5432
+    POSTGRESQL_ADDON_HOST: postgresql
+    POSTGRESQL_ADDON_DB: impress
+    POSTGRESQL_ADDON_USER: dinum
+    POSTGRESQL_ADDON_PASSWORD: pass
+    POSTGRESQL_ADDON_PORT: 5432
     POSTGRES_DB: impress
     POSTGRES_USER: dinum
     POSTGRES_PASSWORD: pass

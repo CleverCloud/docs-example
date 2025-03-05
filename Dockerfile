@@ -123,8 +123,8 @@ USER ${DOCKER_USER}
 
 # Target database host (e.g. database engine following docker compose services
 # name) & port
-ENV DB_HOST=postgresql \
-    DB_PORT=5432
+ENV POSTGRESQL_ADDON_HOST=postgresql \
+    POSTGRESQL_ADDON_PORT=5432
 
 # Run django development server
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

@@ -51,10 +51,10 @@ class Base(Configuration):
     variables:
 
     * SENTRY_DSN
-    * DB_NAME
-    * DB_HOST
-    * DB_PASSWORD
-    * DB_USER
+    * POSTGRESQL_ADDON_DB
+    * POSTGRESQL_ADDON_HOST
+    * POSTGRESQL_ADDON_PASSWORD
+    * POSTGRESQL_ADDON_USER
     """
 
     DEBUG = False
@@ -80,16 +80,16 @@ class Base(Configuration):
                 environ_prefix=None,
             ),
             "NAME": values.Value(
-                "impress", environ_name="DB_NAME", environ_prefix=None
+                "impress", environ_name="POSTGRESQL_ADDON_DB", environ_prefix=None
             ),
-            "USER": values.Value("dinum", environ_name="DB_USER", environ_prefix=None),
+            "USER": values.Value("dinum", environ_name="POSTGRESQL_ADDON_USER", environ_prefix=None),
             "PASSWORD": values.Value(
-                "pass", environ_name="DB_PASSWORD", environ_prefix=None
+                "pass", environ_name="POSTGRESQL_ADDON_PASSWORD", environ_prefix=None
             ),
             "HOST": values.Value(
-                "localhost", environ_name="DB_HOST", environ_prefix=None
+                "localhost", environ_name="POSTGRESQL_ADDON_HOST", environ_prefix=None
             ),
-            "PORT": values.Value(5432, environ_name="DB_PORT", environ_prefix=None),
+            "PORT": values.Value(5432, environ_name="POSTGRESQL_ADDON_PORT", environ_prefix=None),
         }
     }
     DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
