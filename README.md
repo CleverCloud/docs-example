@@ -53,6 +53,13 @@ email: test.docs@yopmail.com
 password: I'd<3ToTestDocs
 ```
 
+### Run it natively
+
+You can run Docs without Docker, natively or on Clever Cloud. Follow the doc in each repository for both the frontend and the backend.
+
+- [Fontend doc](src/frontend/README.md)
+- [Backend doc](src/backend/README.md)
+
 ### Run it locally
 
 > ⚠️ Running Docs locally using the methods described below is for testing purposes only.  It is based on building Docs using Minio as the S3 storage solution: if you want to use Minio for production deployment of Docs, you will need to comply with Minio's AGPL-3.0 licence.

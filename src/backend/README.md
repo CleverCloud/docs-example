@@ -63,5 +63,20 @@ will expand to the current working directory where your setup.py is located. Thi
 Environment variables list:
 
 ```env
-CC_WEBROOT="/api/v1.0/"
+APP_FOLDER="/src/backend"
+CC_PYTHON_MODULE="impress.wsgi:application"
+CC_PYTHON_VERSION="3"
+CC_TROUBLESHOOT="true"
+CELLAR_STORAGE_BUCKET_NAME="impress-media-storage"
+DJANGO_ALLOWED_HOSTS="frontend-url/*"
+DJANGO_CONFIGURATION="Development"
+DJANGO_SECRET_KEY="YourNewlyGeneratedKeyHere"
+DJANGO_SETTINGS_MODULE="impress.settings"
+DJANGO_SUPERUSER_PASSWORD="<your-password>"
+OIDC_OP_AUTHORIZATION_ENDPOINT="<>"
+OIDC_OP_JWKS_ENDPOINT="<>"
+OIDC_OP_TOKEN_ENDPOINT="<>"
+OIDC_OP_USER_ENDPOINT="<>"
+OIDC_RP_CLIENT_SECRET="<your-sercet>"
+STATIC_URL="frontend url"
 ```
