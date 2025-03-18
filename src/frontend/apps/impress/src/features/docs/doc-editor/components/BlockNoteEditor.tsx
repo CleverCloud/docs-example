@@ -1,6 +1,7 @@
 import {
   BlockNoteSchema,
   Dictionary,
+  defaultBlockSpecs,
   locales,
   withPageBreak,
 } from '@blocknote/core';
@@ -14,8 +15,8 @@ import { useTranslation } from 'react-i18next';
 import * as Y from 'yjs';
 
 import { Box, TextErrors } from '@/components';
+import { Doc } from '@/docs/doc-management';
 import { useAuth } from '@/features/auth';
-import { Doc } from '@/features/docs/doc-management';
 
 import { useUploadFile } from '../hook';
 import { useHeadings } from '../hook/useHeadings';
@@ -25,9 +26,18 @@ import { cssEditor } from '../styles';
 import { randomColor } from '../utils';
 
 import { BlockNoteSuggestionMenu } from './BlockNoteSuggestionMenu';
-import { BlockNoteToolbar } from './BlockNoteToolbar';
+import { BlockNoteToolbar } from './BlockNoteToolBar/BlockNoteToolbar';
+import { DividerBlock, QuoteBlock } from './custom-blocks';
 
-export const blockNoteSchema = withPageBreak(BlockNoteSchema.create());
+export const blockNoteSchema = withPageBreak(
+  BlockNoteSchema.create({
+    blockSpecs: {
+      ...defaultBlockSpecs,
+      divider: DividerBlock,
+      quote: QuoteBlock,
+    },
+  }),
+);
 
 interface BlockNoteEditorProps {
   doc: Doc;
@@ -42,7 +52,7 @@ export const BlockNoteEditor = ({ doc, provider }: BlockNoteEditorProps) => {
   const readOnly = !doc.abilities.partial_update;
   useSaveDoc(doc.id, provider.document, !readOnly);
   const { i18n } = useTranslation();
-  const lang = i18n.language;
+  const lang = i18n.resolvedLanguage;
 
   const { uploadFile, errorAttachment } = useUploadFile(doc.id);
 
@@ -125,7 +135,7 @@ export const BlockNoteEditor = ({ doc, provider }: BlockNoteEditorProps) => {
       $css={cssEditor(readOnly)}
     >
       {errorAttachment && (
-        <Box $margin={{ bottom: 'big' }}>
+        <Box $margin={{ bottom: 'big', top: 'none', horizontal: 'large' }}>
           <TextErrors
             causes={errorAttachment.cause}
             canClose
@@ -141,8 +151,8 @@ export const BlockNoteEditor = ({ doc, provider }: BlockNoteEditorProps) => {
         editable={!readOnly}
         theme="light"
       >
-        <BlockNoteToolbar />
         <BlockNoteSuggestionMenu />
+        <BlockNoteToolbar />
       </BlockNoteView>
     </Box>
   );

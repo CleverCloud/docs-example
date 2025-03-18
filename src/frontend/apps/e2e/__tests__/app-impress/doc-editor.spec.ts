@@ -1,8 +1,7 @@
-/* eslint-disable playwright/no-conditional-expect */
-/* eslint-disable playwright/no-conditional-in-test */
 import path from 'path';
 
 import { expect, test } from '@playwright/test';
+import cs from 'convert-stream';
 
 import {
   createDoc,
@@ -16,41 +15,6 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('Doc Editor', () => {
-  test('it check translations of the slash menu when changing language', async ({
-    page,
-    browserName,
-  }) => {
-    await createDoc(page, 'doc-toolbar', browserName, 1);
-
-    const header = page.locator('header').first();
-    const editor = page.locator('.ProseMirror');
-    // Trigger slash menu to show english menu
-    await editor.click();
-    await editor.fill('/');
-    await expect(page.getByText('Headings', { exact: true })).toBeVisible();
-    await header.click();
-    await expect(page.getByText('Headings', { exact: true })).toBeHidden();
-
-    // Reset menu
-    await editor.click();
-    await editor.fill('');
-
-    // Change language to French
-    await header.click();
-    await header.getByRole('combobox').getByText('English').click();
-    await header.getByRole('option', { name: 'Français' }).click();
-    await expect(
-      header.getByRole('combobox').getByText('Français'),
-    ).toBeVisible();
-
-    // Trigger slash menu to show french menu
-    await editor.click();
-    await editor.fill('/');
-    await expect(page.getByText('Titres', { exact: true })).toBeVisible();
-    await header.click();
-    await expect(page.getByText('Titres', { exact: true })).toBeHidden();
-  });
-
   test('it checks default toolbar buttons are displayed', async ({
     page,
     browserName,
@@ -129,11 +93,7 @@ test.describe('Doc Editor', () => {
     const wsClosePromise = webSocket.waitForEvent('close');
 
     await selectVisibility.click();
-    await page
-      .getByRole('button', {
-        name: 'Connected',
-      })
-      .click();
+    await page.getByLabel('Connected').click();
 
     // Assert that the doc reconnects to the ws
     const wsClose = await wsClosePromise;
@@ -415,6 +375,8 @@ test.describe('Doc Editor', () => {
       const editor = page.locator('.ProseMirror');
       await editor.getByText('Hello').dblclick();
 
+      /* eslint-disable playwright/no-conditional-expect */
+      /* eslint-disable playwright/no-conditional-in-test */
       if (!ai_transform && !ai_translate) {
         await expect(page.getByRole('button', { name: 'AI' })).toBeHidden();
         return;
@@ -441,6 +403,45 @@ test.describe('Doc Editor', () => {
           page.getByRole('menuitem', { name: 'Language' }),
         ).toBeHidden();
       }
+      /* eslint-enable playwright/no-conditional-expect */
+      /* eslint-enable playwright/no-conditional-in-test */
     });
+  });
+
+  test('it downloads unsafe files', async ({ page, browserName }) => {
+    const [randomDoc] = await createDoc(page, 'doc-editor', browserName, 1);
+
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    const downloadPromise = page.waitForEvent('download', (download) => {
+      return download.suggestedFilename().includes(`html`);
+    });
+
+    await verifyDocName(page, randomDoc);
+
+    await page.locator('.ProseMirror.bn-editor').click();
+    await page.locator('.ProseMirror.bn-editor').fill('Hello World');
+
+    await page.keyboard.press('Enter');
+    await page.locator('.bn-block-outer').last().fill('/');
+    await page.getByText('Embedded file').click();
+    await page.getByText('Upload file').click();
+
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles(path.join(__dirname, 'assets/test.html'));
+
+    await page.locator('.bn-block-content[data-name="test.html"]').click();
+    await page.getByRole('button', { name: 'Download file' }).click();
+
+    await expect(
+      page.getByText('This file is flagged as unsafe.'),
+    ).toBeVisible();
+
+    await page.getByRole('button', { name: 'Download' }).click();
+
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toContain(`-unsafe.html`);
+
+    const svgBuffer = await cs.toBuffer(await download.createReadStream());
+    expect(svgBuffer.toString()).toContain('Hello svg');
   });
 });

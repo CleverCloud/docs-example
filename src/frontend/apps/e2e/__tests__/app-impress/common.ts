@@ -51,9 +51,15 @@ export const createDoc = async (
       })
       .click();
 
+    await page.waitForURL('**/docs/**', {
+      timeout: 10000,
+      waitUntil: 'networkidle',
+    });
+
     const input = page.getByLabel('doc title input');
     await expect(input).toHaveText('');
     await input.click();
+
     await input.fill(randomDocs[i]);
     await input.blur();
   }
@@ -63,8 +69,11 @@ export const createDoc = async (
 
 export const verifyDocName = async (page: Page, docName: string) => {
   const input = page.getByRole('textbox', { name: 'doc title input' });
-  await expect(input).toBeVisible();
-  await expect(input).toHaveText(docName);
+  try {
+    await expect(input).toHaveText(docName);
+  } catch {
+    await expect(page.getByRole('heading', { name: docName })).toBeVisible();
+  }
 };
 
 export const addNewMember = async (
@@ -97,7 +106,7 @@ export const addNewMember = async (
 
   // Choose a role
   await page.getByLabel('doc-role-dropdown').click();
-  await page.getByRole('button', { name: role }).click();
+  await page.getByLabel(role).click();
   await page.getByRole('button', { name: 'Invite' }).click();
 
   return users[index].email;

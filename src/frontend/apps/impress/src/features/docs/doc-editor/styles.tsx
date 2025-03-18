@@ -6,6 +6,10 @@ export const cssEditor = (readonly: boolean) => css`
   & .ProseMirror {
     height: 100%;
 
+    img.bn-visual-media[src*='-unsafe'] {
+      pointer-events: none;
+    }
+
     .collaboration-cursor-custom__base {
       position: relative;
     }
@@ -41,6 +45,9 @@ export const cssEditor = (readonly: boolean) => css`
       clip-path: polygon(0 0, 100% 0%, 100% 100%, 0% 100%);
     }
 
+    /**
+     * Side menu
+     */
     .bn-side-menu[data-block-type='heading'][data-level='1'] {
       height: 50px;
     }
@@ -50,6 +57,13 @@ export const cssEditor = (readonly: boolean) => css`
     .bn-side-menu[data-block-type='heading'][data-level='3'] {
       height: 35px;
     }
+    .bn-side-menu[data-block-type='quote'] {
+      height: 46px;
+    }
+    .bn-side-menu[data-block-type='divider'] {
+      height: 38px;
+    }
+
     h1 {
       font-size: 1.875rem;
     }
@@ -76,13 +90,13 @@ export const cssEditor = (readonly: boolean) => css`
 
   .bn-block-outer:not(:first-child) {
     &:has(h1) {
-      padding-top: 32px;
+      margin-top: 32px;
     }
     &:has(h2) {
-      padding-top: 24px;
+      margin-top: 24px;
     }
     &:has(h3) {
-      padding-top: 16px;
+      margin-top: 16px;
     }
   }
 
@@ -92,9 +106,16 @@ export const cssEditor = (readonly: boolean) => css`
     border-radius: 4px;
   }
 
+  @media screen and (width <= 768px) {
+    & .bn-editor {
+      padding-right: 36px;
+    }
+  }
+
   @media screen and (width <= 560px) {
     & .bn-editor {
       ${readonly && `padding-left: 10px;`}
+      padding-right: 10px;
     }
     .bn-side-menu[data-block-type='heading'][data-level='1'] {
       height: 46px;

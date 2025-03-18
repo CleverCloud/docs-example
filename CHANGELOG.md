@@ -8,15 +8,77 @@ and this project adheres to
 
 ## [Unreleased]
 
+## Added
+
+- 📝(doc) Added GNU Make link to README #750
+- ✨(frontend) add pinning on doc detail #711
+- 🚩(frontend) feature flag analytic on copy as html #649
+- ✨(frontend) Custom block divider with export #698
+- 🌐(i18n) activate dutch language #742
+
+## Changed
+
+- 🧑‍💻(frontend) change literal section open source #702
+- ♻️(frontend) replace cors proxy for export #695
+- 🚨(gitlint) Allow uppercase in commit messages #756
+
+## Fixed
+
+- 🐛(frontend) SVG export #706
+- 🐛(frontend) remove scroll listener table content  #688
+- 🔒️(back) restrict access to favorite_list endpoint #690
+- 🐛(backend) refactor to fix filtering on children 
+    and descendants views #695
+- 🐛(action) fix notify-argocd workflow #713
+- 🚨(helm) fix helmfile lint #736
+- 🚚(frontend) redirect to 401 page when 401 error #759
+
+
+## [2.4.0] - 2025-03-06
+
+## Added
+
+- ✨(frontend) synchronize language-choice #401
+- ✨(frontend) add Beautify action to AI transform #478
+- ✨(frontend) add Emojify action to AI transform #478
+
+## Changed
+
+- Use sentry tags instead of extra scope
+- ♻️(frontend) Improve AI translations #478
+
+## Fixed
+
+- 🐛(frontend) fix collaboration error #684
+
+
+## [2.3.0] - 2025-03-03
+
+## Added
+
+- ✨(backend) limit link reach/role select options depending on ancestors #645
+- ✨(backend) add new "descendants" action to document API endpoint #645
+- ✨(backend) new "tree" action on document detail endpoint #645
+- ✨(backend) allow forcing page size within limits #645
+- 💄(frontend) add error pages #643
+- 🔒️ Manage unsafe attachments #663
+- ✨(frontend) Custom block quote with export #646
+- ✨(frontend) add open source section homepage #666
+- ✨(frontend) synchronize language-choice #401
+
 ## Changed
 
 - 🛂(frontend) Restore version visibility #629
 - 📝(doc) minor README.md formatting and wording enhancements
 - ♻️Stop setting a default title on doc creation #634
+- ♻️(frontend) misc ui improvements #644
 
 ## Fixed
 
+- 🐛(backend) allow any type of extensions for media download #671
 - ♻️(frontend) improve table pdf rendering
+- 🐛(email) invitation emails in receivers language
+
 
 ## [2.2.0] - 2025-02-10
 
@@ -404,7 +466,8 @@ and this project adheres to
 - ✨(frontend) Coming Soon page (#67)
 - 🚀 Impress, project to manage your documents easily and collaboratively.
 
-[unreleased]: https://github.com/numerique-gouv/impress/compare/v2.2.0...main
+[unreleased]: https://github.com/numerique-gouv/impress/compare/v2.3.0...main
+[v2.3.0]: https://github.com/numerique-gouv/impress/releases/v2.3.0
 [v2.2.0]: https://github.com/numerique-gouv/impress/releases/v2.2.0
 [v2.1.0]: https://github.com/numerique-gouv/impress/releases/v2.1.0
 [v2.0.1]: https://github.com/numerique-gouv/impress/releases/v2.0.1

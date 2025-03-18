@@ -4,7 +4,7 @@ import { css } from 'styled-components';
 
 import { Box, Text } from '@/components';
 import { useCunninghamTheme } from '@/cunningham';
-import { Doc, useTrans } from '@/features/docs/doc-management';
+import { Doc, useTrans } from '@/docs/doc-management';
 import { useResponsiveStore } from '@/stores';
 
 import PinnedDocumentIcon from '../assets/pinned-document.svg';
@@ -38,7 +38,7 @@ export const SimpleDocItem = ({
   const { untitledDocument } = useTrans();
 
   return (
-    <Box $direction="row" $gap={spacings.sm}>
+    <Box $direction="row" $gap={spacings.sm} $overflow="auto">
       <Box
         $direction="row"
         $align="center"
@@ -53,7 +53,7 @@ export const SimpleDocItem = ({
           <SimpleFileIcon aria-label={t('Simple document icon')} />
         )}
       </Box>
-      <Box $justify="center">
+      <Box $justify="center" $overflow="auto">
         <Text
           aria-describedby="doc-title"
           aria-label={doc.title}

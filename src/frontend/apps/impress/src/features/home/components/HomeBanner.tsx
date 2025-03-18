@@ -55,7 +55,7 @@ export default function HomeBanner() {
             $textAlign="center"
             $margin="none"
             $css={css`
-              line-height: 56px;
+              line-height: ${!isMobile ? '56px' : '45px'};
             `}
           >
             {t('Collaborative writing, Simplified.')}
@@ -74,7 +74,7 @@ export default function HomeBanner() {
             <ProConnectButton />
           ) : (
             <Button
-              onClick={gotoLogin}
+              onClick={() => gotoLogin()}
               icon={
                 <Text $isMaterialIcon $color="white">
                   bolt

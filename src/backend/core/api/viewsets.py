@@ -4,7 +4,7 @@
 import logging
 import re
 import uuid
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 from django.conf import settings
 from django.contrib.postgres.aggregates import ArrayAgg
@@ -16,11 +16,11 @@ from django.db import models as db
 from django.db import transaction
 from django.db.models.expressions import RawSQL
 from django.db.models.functions import Left, Length
-from django.http import Http404
+from django.http import Http404, StreamingHttpResponse
 
+import requests
 import rest_framework as drf
 from botocore.exceptions import ClientError
-from django_filters import rest_framework as drf_filters
 from rest_framework import filters, status, viewsets
 from rest_framework import response as drf_response
 from rest_framework.permissions import AllowAny
@@ -30,7 +30,7 @@ from core.services.ai_services import AIService
 from core.services.collaboration_services import CollaborationService
 
 from . import permissions, serializers, utils
-from .filters import DocumentFilter
+from .filters import DocumentFilter, ListDocumentFilter
 
 logger = logging.getLogger(__name__)
 
@@ -38,10 +38,10 @@ ATTACHMENTS_FOLDER = "attachments"
 UUID_REGEX = (
     r"[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
 )
-FILE_EXT_REGEX = r"\.[a-zA-Z]{3,4}"
+FILE_EXT_REGEX = r"\.[a-zA-Z0-9]{1,10}"
 MEDIA_STORAGE_URL_PATTERN = re.compile(
     f"{settings.MEDIA_URL:s}(?P<pk>{UUID_REGEX:s})/"
-    f"(?P<key>{ATTACHMENTS_FOLDER:s}/{UUID_REGEX:s}{FILE_EXT_REGEX:s})$"
+    f"(?P<key>{ATTACHMENTS_FOLDER:s}/{UUID_REGEX:s}(?:-unsafe)?{FILE_EXT_REGEX:s})$"
 )
 COLLABORATION_WS_URL_PATTERN = re.compile(rf"(?:^|&)room=(?P<pk>{UUID_REGEX})(?:&|$)")
 
@@ -315,7 +315,6 @@ class DocumentViewSet(
     SerializerPerActionMixin,
     drf.mixins.CreateModelMixin,
     drf.mixins.DestroyModelMixin,
-    drf.mixins.ListModelMixin,
     drf.mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
@@ -413,20 +412,21 @@ class DocumentViewSet(
     - Implements soft delete logic to retain document tree structures.
     """
 
-    filter_backends = [drf_filters.DjangoFilterBackend]
-    filterset_class = DocumentFilter
     metadata_class = DocumentMetadata
     ordering = ["-updated_at"]
     ordering_fields = ["created_at", "updated_at", "title"]
+    pagination_class = Pagination
     permission_classes = [
         permissions.DocumentAccessPermission,
     ]
     queryset = models.Document.objects.all()
     serializer_class = serializers.DocumentSerializer
+    ai_translate_serializer_class = serializers.AITranslateSerializer
+    children_serializer_class = serializers.ListDocumentSerializer
+    descendants_serializer_class = serializers.ListDocumentSerializer
     list_serializer_class = serializers.ListDocumentSerializer
     trashbin_serializer_class = serializers.ListDocumentSerializer
-    children_serializer_class = serializers.ListDocumentSerializer
-    ai_translate_serializer_class = serializers.AITranslateSerializer
+    tree_serializer_class = serializers.ListDocumentSerializer
 
     def annotate_is_favorite(self, queryset):
         """
@@ -499,11 +499,42 @@ class DocumentViewSet(
         )
 
     def filter_queryset(self, queryset):
-        """Apply annotations and filters sequentially."""
-        filterset = DocumentFilter(
+        """Override to apply annotations to generic views."""
+        queryset = super().filter_queryset(queryset)
+        queryset = self.annotate_is_favorite(queryset)
+        queryset = self.annotate_user_roles(queryset)
+        return queryset
+
+    def get_response_for_queryset(self, queryset):
+        """Return paginated response for the queryset if requested."""
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return drf.response.Response(serializer.data)
+
+    def list(self, request, *args, **kwargs):
+        """
+        Returns a DRF response containing the filtered, annotated and ordered document list.
+
+        This method applies filtering based on request parameters using `ListDocumentFilter`.
+        It performs early filtering on model fields, annotates user roles, and removes
+        descendant documents to keep only the highest ancestors readable by the current user.
+
+        Additional annotations (e.g., `is_highest_ancestor_for_user`, favorite status) are
+        applied before ordering and returning the response.
+        """
+        queryset = (
+            self.get_queryset()
+        )  # Not calling filter_queryset. We do our own cooking.
+
+        filterset = ListDocumentFilter(
             self.request.GET, queryset=queryset, request=self.request
         )
-        filterset.is_valid()
+        if not filterset.is_valid():
+            raise drf.exceptions.ValidationError(filterset.errors)
         filter_data = filterset.form.cleaned_data
 
         # Filter as early as possible on fields that are available on the model
@@ -512,22 +543,19 @@ class DocumentViewSet(
 
         queryset = self.annotate_user_roles(queryset)
 
-        if self.action == "list":
-            # Among the results, we may have documents that are ancestors/descendants
-            # of each other. In this case we want to keep only the highest ancestors.
-            root_paths = utils.filter_root_paths(
-                queryset.order_by("path").values_list("path", flat=True),
-                skip_sorting=True,
-            )
-            queryset = queryset.filter(path__in=root_paths)
+        # Among the results, we may have documents that are ancestors/descendants
+        # of each other. In this case we want to keep only the highest ancestors.
+        root_paths = utils.filter_root_paths(
+            queryset.order_by("path").values_list("path", flat=True),
+            skip_sorting=True,
+        )
+        queryset = queryset.filter(path__in=root_paths)
 
-            # Annotate the queryset with an attribute marking instances as highest ancestor
-            # in order to save some time while computing abilities in the instance
-            queryset = queryset.annotate(
-                is_highest_ancestor_for_user=db.Value(
-                    True, output_field=db.BooleanField()
-                )
-            )
+        # Annotate the queryset with an attribute marking instances as highest ancestor
+        # in order to save some time while computing abilities on the instance
+        queryset = queryset.annotate(
+            is_highest_ancestor_for_user=db.Value(True, output_field=db.BooleanField())
+        )
 
         # Annotate favorite status and filter if applicable as late as possible
         queryset = self.annotate_is_favorite(queryset)
@@ -536,18 +564,11 @@ class DocumentViewSet(
         )
 
         # Apply ordering only now that everyting is filtered and annotated
-        return filters.OrderingFilter().filter_queryset(self.request, queryset, self)
+        queryset = filters.OrderingFilter().filter_queryset(
+            self.request, queryset, self
+        )
 
-    def get_response_for_queryset(self, queryset):
-        """Return paginated response for the queryset if requested."""
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            result = self.get_paginated_response(serializer.data)
-            return result
-
-        serializer = self.get_serializer(queryset, many=True)
-        return drf.response.Response(serializer.data)
+        return self.get_response_for_queryset(queryset)
 
     def retrieve(self, request, *args, **kwargs):
         """
@@ -591,6 +612,7 @@ class DocumentViewSet(
     @drf.decorators.action(
         detail=False,
         methods=["get"],
+        permission_classes=[permissions.IsAuthenticated],
     )
     def favorite_list(self, request, *args, **kwargs):
         """Get list of favorite documents for the current user."""
@@ -600,7 +622,7 @@ class DocumentViewSet(
             user=user
         ).values_list("document_id", flat=True)
 
-        queryset = self.get_queryset()
+        queryset = self.filter_queryset(self.get_queryset())
         queryset = queryset.filter(id__in=favorite_documents_ids)
         return self.get_response_for_queryset(queryset)
 
@@ -727,7 +749,6 @@ class DocumentViewSet(
         detail=True,
         methods=["get", "post"],
         ordering=["path"],
-        url_path="children",
     )
     def children(self, request, *args, **kwargs):
         """Handle listing and creating children of a document"""
@@ -759,11 +780,105 @@ class DocumentViewSet(
             )
 
         # GET: List children
-        queryset = document.get_children().filter(deleted_at__isnull=True)
+        queryset = document.get_children().filter(ancestors_deleted_at__isnull=True)
         queryset = self.filter_queryset(queryset)
-        queryset = self.annotate_is_favorite(queryset)
-        queryset = self.annotate_user_roles(queryset)
+
+        filterset = DocumentFilter(request.GET, queryset=queryset)
+        if not filterset.is_valid():
+            raise drf.exceptions.ValidationError(filterset.errors)
+
+        queryset = filterset.qs
+
         return self.get_response_for_queryset(queryset)
+
+    @drf.decorators.action(
+        detail=True,
+        methods=["get"],
+        ordering=["path"],
+    )
+    def descendants(self, request, *args, **kwargs):
+        """Handle listing descendants of a document"""
+        document = self.get_object()
+
+        queryset = document.get_descendants().filter(ancestors_deleted_at__isnull=True)
+        queryset = self.filter_queryset(queryset)
+
+        filterset = DocumentFilter(request.GET, queryset=queryset)
+        if not filterset.is_valid():
+            raise drf.exceptions.ValidationError(filterset.errors)
+
+        queryset = filterset.qs
+
+        return self.get_response_for_queryset(queryset)
+
+    @drf.decorators.action(
+        detail=True,
+        methods=["get"],
+        ordering=["path"],
+    )
+    def tree(self, request, pk, *args, **kwargs):
+        """
+        List ancestors tree above the document.
+        What we need to display is the tree structure opened for the current document.
+        """
+        try:
+            current_document = self.queryset.only("depth", "path").get(pk=pk)
+        except models.Document.DoesNotExist as excpt:
+            raise drf.exceptions.NotFound from excpt
+
+        ancestors = (
+            (current_document.get_ancestors() | self.queryset.filter(pk=pk))
+            .filter(ancestors_deleted_at__isnull=True)
+            .order_by("path")
+        )
+
+        # Get the highest readable ancestor
+        highest_readable = ancestors.readable_per_se(request.user).only("depth").first()
+        if highest_readable is None:
+            raise (
+                drf.exceptions.PermissionDenied()
+                if request.user.is_authenticated
+                else drf.exceptions.NotAuthenticated()
+            )
+
+        paths_links_mapping = {}
+        ancestors_links = []
+        children_clause = db.Q()
+        for ancestor in ancestors:
+            if ancestor.depth < highest_readable.depth:
+                continue
+
+            children_clause |= db.Q(
+                path__startswith=ancestor.path, depth=ancestor.depth + 1
+            )
+
+            # Compute cache for ancestors links to avoid many queries while computing
+            # abilties for his documents in the tree!
+            ancestors_links.append(
+                {"link_reach": ancestor.link_reach, "link_role": ancestor.link_role}
+            )
+            paths_links_mapping[ancestor.path] = ancestors_links.copy()
+
+        children = self.queryset.filter(children_clause, deleted_at__isnull=True)
+
+        queryset = ancestors.filter(depth__gte=highest_readable.depth) | children
+        queryset = queryset.order_by("path")
+        queryset = self.annotate_user_roles(queryset)
+        queryset = self.annotate_is_favorite(queryset)
+
+        # Pass ancestors' links definitions to the serializer as a context variable
+        # in order to allow saving time while computing abilities on the instance
+        serializer = self.get_serializer(
+            queryset,
+            many=True,
+            context={
+                "request": request,
+                "paths_links_mapping": paths_links_mapping,
+            },
+        )
+        return drf.response.Response(
+            utils.nest_tree(serializer.data, self.queryset.model.steplen)
+        )
 
     @drf.decorators.action(detail=True, methods=["get"], url_path="versions")
     def versions_list(self, request, *args, **kwargs):
@@ -915,15 +1030,31 @@ class DocumentViewSet(
         # Generate a generic yet unique filename to store the image in object storage
         file_id = uuid.uuid4()
         extension = serializer.validated_data["expected_extension"]
-        key = f"{document.key_base}/{ATTACHMENTS_FOLDER:s}/{file_id!s}.{extension:s}"
 
         # Prepare metadata for storage
         extra_args = {
             "Metadata": {"owner": str(request.user.id)},
             "ContentType": serializer.validated_data["content_type"],
         }
+        file_unsafe = ""
         if serializer.validated_data["is_unsafe"]:
             extra_args["Metadata"]["is_unsafe"] = "true"
+            file_unsafe = "-unsafe"
+
+        key = f"{document.key_base}/{ATTACHMENTS_FOLDER:s}/{file_id!s}{file_unsafe}.{extension:s}"
+
+        file_name = serializer.validated_data["file_name"]
+        if (
+            not serializer.validated_data["content_type"].startswith("image/")
+            or serializer.validated_data["is_unsafe"]
+        ):
+            extra_args.update(
+                {"ContentDisposition": f'attachment; filename="{file_name:s}"'}
+            )
+        else:
+            extra_args.update(
+                {"ContentDisposition": f'inline; filename="{file_name:s}"'}
+            )
 
         file = serializer.validated_data["file"]
         default_storage.connection.meta.client.upload_fileobj(
@@ -1107,6 +1238,58 @@ class DocumentViewSet(
 
         return drf.response.Response(response, status=drf.status.HTTP_200_OK)
 
+    @drf.decorators.action(
+        detail=True,
+        methods=["get"],
+        name="",
+        url_path="cors-proxy",
+    )
+    def cors_proxy(self, request, *args, **kwargs):
+        """
+        GET /api/v1.0/documents/<resource_id>/cors-proxy
+        Act like a proxy to fetch external resources and bypass CORS restrictions.
+        """
+        url = request.query_params.get("url")
+        if not url:
+            return drf.response.Response(
+                {"detail": "Missing 'url' query parameter"},
+                status=drf.status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Check for permissions.
+        self.get_object()
+
+        url = unquote(url)
+
+        try:
+            response = requests.get(
+                url,
+                stream=True,
+                headers={
+                    "User-Agent": request.headers.get("User-Agent", ""),
+                    "Accept": request.headers.get("Accept", ""),
+                },
+                timeout=10,
+            )
+
+            # Use StreamingHttpResponse with the response's iter_content to properly stream the data
+            proxy_response = StreamingHttpResponse(
+                streaming_content=response.iter_content(chunk_size=8192),
+                content_type=response.headers.get(
+                    "Content-Type", "application/octet-stream"
+                ),
+                status=response.status_code,
+            )
+
+            return proxy_response
+
+        except requests.RequestException as e:
+            logger.error("Proxy request failed: %s", str(e))
+            return drf_response.Response(
+                {"error": f"Failed to fetch resource: {e!s}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
 
 class DocumentAccessViewSet(
     ResourceAccessViewsetMixin,
@@ -1151,13 +1334,14 @@ class DocumentAccessViewSet(
     def perform_create(self, serializer):
         """Add a new access to the document and send an email to the new added user."""
         access = serializer.save()
-        language = self.request.headers.get("Content-Language", "en-us")
 
         access.document.send_invitation_email(
             access.user.email,
             access.role,
             self.request.user,
-            language,
+            access.user.language
+            or self.request.user.language
+            or settings.LANGUAGE_CODE,
         )
 
     def perform_update(self, serializer):
@@ -1383,10 +1567,11 @@ class InvitationViewset(
         """Save invitation to a document then send an email to the invited user."""
         invitation = serializer.save()
 
-        language = self.request.headers.get("Content-Language", "en-us")
-
         invitation.document.send_invitation_email(
-            invitation.email, invitation.role, self.request.user, language
+            invitation.email,
+            invitation.role,
+            self.request.user,
+            self.request.user.language or settings.LANGUAGE_CODE,
         )
 
 

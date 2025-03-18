@@ -5,15 +5,15 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 
 import { Box, Text, TextErrors } from '@/components';
-import { gotoLogin } from '@/features/auth';
-import { DocEditor } from '@/features/docs/doc-editor';
+import { DocEditor } from '@/docs/doc-editor';
 import {
   Doc,
   KEY_DOC,
   useCollaboration,
   useDoc,
   useDocStore,
-} from '@/features/docs/doc-management/';
+} from '@/docs/doc-management/';
+import { KEY_AUTH, setAuthUrl } from '@/features/auth';
 import { MainLayout } from '@/layouts';
 import { useBroadcastStore } from '@/stores';
 import { NextPageWithLayout } from '@/types/next';
@@ -99,13 +99,22 @@ const DocPage = ({ id }: DocProps) => {
   }, [addTask, doc?.id, queryClient]);
 
   if (isError && error) {
+    if (error.status === 403) {
+      void replace(`/403`);
+      return null;
+    }
+
     if (error.status === 404) {
       void replace(`/404`);
       return null;
     }
 
     if (error.status === 401) {
-      gotoLogin();
+      void queryClient.resetQueries({
+        queryKey: [KEY_AUTH],
+      });
+      setAuthUrl();
+      void replace(`/401`);
       return null;
     }
 

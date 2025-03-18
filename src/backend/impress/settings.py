@@ -19,6 +19,7 @@ from django.utils.translation import gettext_lazy as _
 import sentry_sdk
 from configurations import Configuration, values
 from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.logging import ignore_logger
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -210,7 +211,6 @@ class Base(Configuration):
         "application/x-ms-regedit",
         "application/x-msdownload",
         "application/xml",
-        "image/svg+xml",
     ]
 
     # Document versions
@@ -221,7 +221,9 @@ class Base(Configuration):
 
     # Languages
     LANGUAGE_CODE = values.Value("en-us")
-    LANGUAGE_COOKIE_NAME = "docs_language"  # cookie & language is set from frontend
+    # cookie & language is set from frontend
+    LANGUAGE_COOKIE_NAME = "docs_language"
+    LANGUAGE_COOKIE_PATH = "/"
 
     DRF_NESTED_MULTIPART_PARSER = {
         # output of parser is converted to querydict
@@ -233,9 +235,10 @@ class Base(Configuration):
     # fallback/default languages throughout the app.
     LANGUAGES = values.SingleNestedTupleValue(
         (
-            ("en-us", _("English")),
-            ("fr-fr", _("French")),
-            ("de-de", _("German")),
+            ("en-us", "English"),
+            ("fr-fr", "Français"),
+            ("de-de", "Deutsch"),
+            ("nl-nl", "Nederlands"),
         )
     )
 
@@ -647,8 +650,10 @@ class Base(Configuration):
                 release=get_release(),
                 integrations=[DjangoIntegration()],
             )
-            with sentry_sdk.configure_scope() as scope:
-                scope.set_extra("application", "backend")
+            sentry_sdk.set_tag("application", "backend")
+
+            # Ignore the logs added by the DockerflowMiddleware
+            ignore_logger("request.summary")
 
         if (
             cls.OIDC_FALLBACK_TO_EMAIL_FOR_IDENTIFICATION
@@ -696,6 +701,28 @@ class Development(Base):
     SESSION_COOKIE_NAME = "impress_sessionid"
 
     USE_SWAGGER = True
+    SESSION_CACHE_ALIAS = "session"
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+        },
+        "session": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": values.Value(
+                "redis://redis:6379/2",
+                environ_name="REDIS_URL",
+                environ_prefix=None,
+            ),
+            "TIMEOUT": values.IntegerValue(
+                30,  # timeout in seconds
+                environ_name="CACHES_DEFAULT_TIMEOUT",
+                environ_prefix=None,
+            ),
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            },
+        },
+    }
 
     def __init__(self):
         # pylint: disable=invalid-name

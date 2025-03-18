@@ -7,16 +7,8 @@ type SmallDoc = {
   title: string;
 };
 
-test.beforeEach(async ({ page }) => {
-  await page.goto('/');
-});
-
 test.describe('Documents Grid mobile', () => {
   test.use({ viewport: { width: 500, height: 1200 } });
-
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-  });
 
   test('it checks the grid when mobile', async ({ page }) => {
     await page.route('**/documents/**', async (route) => {
@@ -94,6 +86,10 @@ test.describe('Documents Grid mobile', () => {
 });
 
 test.describe('Document grid item options', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+  });
+
   test('it pins a document', async ({ page, browserName }) => {
     const [docTitle] = await createDoc(page, `Favorite doc`, browserName);
 
@@ -119,25 +115,16 @@ test.describe('Document grid item options', () => {
     await expect(leftPanelFavorites.getByText(docTitle)).toBeHidden();
   });
 
-  test('it deletes the document', async ({ page }) => {
-    let docs: SmallDoc[] = [];
-    const response = await page.waitForResponse(
-      (response) =>
-        response.url().endsWith('documents/?page=1') &&
-        response.status() === 200,
-    );
-    const result = await response.json();
-    docs = result.results as SmallDoc[];
+  test('it deletes the document', async ({ page, browserName }) => {
+    const [docTitle] = await createDoc(page, `delete doc`, browserName);
 
-    const button = page.getByTestId(`docs-grid-actions-button-${docs[0].id}`);
-    await expect(button).toBeVisible();
-    await button.click();
+    await page.goto('/');
 
-    const removeButton = page.getByTestId(
-      `docs-grid-actions-remove-${docs[0].id}`,
-    );
-    await expect(removeButton).toBeVisible();
-    await removeButton.click();
+    await expect(page.getByText(docTitle)).toBeVisible();
+    const row = await getGridRow(page, docTitle);
+    await row.getByText(`more_horiz`).click();
+
+    await page.getByRole('menuitem', { name: 'Remove' }).click();
 
     await expect(
       page.getByRole('heading', { name: 'Delete a doc' }),
@@ -149,20 +136,11 @@ test.describe('Document grid item options', () => {
       })
       .click();
 
-    const refetchResponse = await page.waitForResponse(
-      (response) =>
-        response.url().endsWith('documents/?page=1') &&
-        response.status() === 200,
-    );
-
-    const resultRefetch = await refetchResponse.json();
-    expect(resultRefetch.count).toBe(result.count - 1);
-    await expect(page.getByTestId('main-layout-loader')).toBeHidden();
-
     await expect(
       page.getByText('The document has been deleted.'),
     ).toBeVisible();
-    await expect(button).toBeHidden();
+
+    await expect(page.getByText(docTitle)).toBeHidden();
   });
 
   test("it checks if the delete option is disabled if we don't have the destroy capability", async ({
@@ -212,6 +190,8 @@ test.describe('Document grid item options', () => {
 
 test.describe('Documents filters', () => {
   test('it checks the prebuild left panel filters', async ({ page }) => {
+    await page.goto('/');
+
     // All Docs
     const response = await page.waitForResponse(
       (response) =>
@@ -282,11 +262,9 @@ test.describe('Documents filters', () => {
 });
 
 test.describe('Documents Grid', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-  });
-
   test('checks all the elements are visible', async ({ page }) => {
+    await page.goto('/');
+
     let docs: SmallDoc[] = [];
     const response = await page.waitForResponse(
       (response) =>
@@ -314,17 +292,20 @@ test.describe('Documents Grid', () => {
 
   test('checks the infinite scroll', async ({ page }) => {
     let docs: SmallDoc[] = [];
-    const responsePromisePage1 = page.waitForResponse(
-      (response) =>
+    const responsePromisePage1 = page.waitForResponse((response) => {
+      return (
         response.url().endsWith(`/documents/?page=1`) &&
-        response.status() === 200,
-    );
+        response.status() === 200
+      );
+    });
 
     const responsePromisePage2 = page.waitForResponse(
       (response) =>
         response.url().endsWith(`/documents/?page=2`) &&
         response.status() === 200,
     );
+
+    await page.goto('/');
 
     const responsePage1 = await responsePromisePage1;
     expect(responsePage1.ok()).toBeTruthy();

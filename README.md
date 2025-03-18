@@ -46,7 +46,7 @@ Docs is a collaborative text editor designed to address common challenges in kno
 
 ### Test it
 
-Test Docs on your browser by logging in on this [environment](https://impress-preprod.beta.numerique.gouv.fr/docs/0aa856e9-da41-4d59-b73d-a61cb2c1245f/)
+Test Docs on your browser by logging in on this [environment](https://impress-preprod.beta.numerique.gouv.fr/)
 
 ```
 email: test.docs@yopmail.com
@@ -62,7 +62,7 @@ You can run Docs without Docker, natively or on Clever Cloud. Follow the doc in 
 
 ### Run it locally
 
-> ⚠️ Running Docs locally using the methods described below is for testing purposes only.  It is based on building Docs using Minio as the S3 storage solution: if you want to use Minio for production deployment of Docs, you will need to comply with Minio's AGPL-3.0 licence.
+> ⚠️ Running Docs locally using the methods described below is for testing purposes only.  It is based on building Docs using Minio as the S3 storage solution but you can choose any S3 compatible object storage of your choice.
 
 **Prerequisite**
 
@@ -82,7 +82,7 @@ Docker Compose version v2.32.4
 
 **Project bootstrap**
 
-The easiest way to start working on the project is to use GNU Make:
+The easiest way to start working on the project is to use [GNU Make](https://www.gnu.org/software/make/):
 
 ```shellscript
 $ make bootstrap FLUSH_ARGS='--no-input'

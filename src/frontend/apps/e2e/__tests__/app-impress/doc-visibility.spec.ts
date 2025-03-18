@@ -49,21 +49,13 @@ test.describe('Doc Visibility', () => {
     await expect(page.getByLabel('Can read and edit')).toBeHidden();
 
     await selectVisibility.click();
-    await page
-      .getByRole('button', {
-        name: 'Connected',
-      })
-      .click();
+    await page.getByLabel('Connected').click();
 
     await expect(page.getByLabel('Visibility mode')).toBeVisible();
 
     await selectVisibility.click();
 
-    await page
-      .getByRole('button', {
-        name: 'Public',
-      })
-      .click();
+    await page.getByLabel('Public', { exact: true }).click();
 
     await expect(page.getByLabel('Visibility mode')).toBeVisible();
   });
@@ -100,7 +92,9 @@ test.describe('Doc Visibility: Restricted', () => {
 
     await page.goto(urlDoc);
 
-    await expect(page.getByRole('textbox', { name: 'password' })).toBeVisible();
+    await expect(
+      page.getByText('Log in to access the document.'),
+    ).toBeVisible();
   });
 
   test('A doc is not accessible when authentified but not member.', async ({
@@ -133,7 +127,7 @@ test.describe('Doc Visibility: Restricted', () => {
     await page.goto(urlDoc);
 
     await expect(
-      page.getByText('You do not have permission to perform this action.'),
+      page.getByText('You do not have permission to view this document.'),
     ).toBeVisible();
   });
 
@@ -160,7 +154,7 @@ test.describe('Doc Visibility: Restricted', () => {
     // Choose a role
     const container = page.getByTestId('doc-share-add-member-list');
     await container.getByLabel('doc-role-dropdown').click();
-    await page.getByRole('button', { name: 'Administrator' }).click();
+    await page.getByLabel('Reader').click();
 
     await page.getByRole('button', { name: 'Invite' }).click();
 
@@ -213,7 +207,7 @@ test.describe('Doc Visibility: Public', () => {
     await selectVisibility.click();
 
     await page
-      .getByRole('button', {
+      .getByRole('menuitem', {
         name: 'Public',
       })
       .click();
@@ -225,7 +219,7 @@ test.describe('Doc Visibility: Public', () => {
     await expect(page.getByLabel('Visibility mode')).toBeVisible();
     await page.getByLabel('Visibility mode').click();
     await page
-      .getByRole('button', {
+      .getByRole('menuitem', {
         name: 'Reading',
       })
       .click();
@@ -287,7 +281,7 @@ test.describe('Doc Visibility: Public', () => {
     await selectVisibility.click();
 
     await page
-      .getByRole('button', {
+      .getByRole('menuitem', {
         name: 'Public',
       })
       .click();
@@ -355,7 +349,7 @@ test.describe('Doc Visibility: Authenticated', () => {
     const selectVisibility = page.getByLabel('Visibility', { exact: true });
     await selectVisibility.click();
     await page
-      .getByRole('button', {
+      .getByRole('menuitem', {
         name: 'Connected',
       })
       .click();
@@ -379,7 +373,10 @@ test.describe('Doc Visibility: Authenticated', () => {
     await page.goto(urlDoc);
 
     await expect(page.locator('h2').getByText(docTitle)).toBeHidden();
-    await expect(page.getByRole('textbox', { name: 'password' })).toBeVisible();
+
+    await expect(
+      page.getByText('Log in to access the document.'),
+    ).toBeVisible();
   });
 
   test('It checks a authenticated doc in read only mode', async ({
@@ -402,13 +399,21 @@ test.describe('Doc Visibility: Authenticated', () => {
     const selectVisibility = page.getByLabel('Visibility', { exact: true });
     await selectVisibility.click();
     await page
-      .getByRole('button', {
+      .getByRole('menuitem', {
         name: 'Connected',
       })
       .click();
 
     await expect(
       page.getByText('The document visibility has been updated.'),
+    ).toBeVisible();
+
+    await expect(
+      page
+        .getByLabel('It is the card information about the document.')
+        .getByText('Document accessible to any connected person', {
+          exact: true,
+        }),
     ).toBeVisible();
 
     await page.getByRole('button', { name: 'close' }).click();
@@ -456,7 +461,7 @@ test.describe('Doc Visibility: Authenticated', () => {
     const selectVisibility = page.getByLabel('Visibility', { exact: true });
     await selectVisibility.click();
     await page
-      .getByRole('button', {
+      .getByRole('menuitem', {
         name: 'Connected',
       })
       .click();

@@ -1,7 +1,7 @@
 import { WorkboxPlugin } from 'workbox-core';
 
-import { Doc, DocsResponse } from '@/features/docs/doc-management';
-import { LinkReach, LinkRole } from '@/features/docs/doc-management/types';
+import { Doc, DocsResponse } from '@/docs/doc-management';
+import { LinkReach, LinkRole } from '@/docs/doc-management/types';
 
 import { DBRequest, DocsDB } from './DocsDB';
 import { RequestSerializer } from './RequestSerializer';
@@ -146,20 +146,11 @@ export class ApiPlugin implements WorkboxPlugin {
       await RequestSerializer.fromRequest(this.initialRequest)
     ).toObject();
 
-    if (!requestData.body) {
-      return new Response('Body found', { status: 404 });
-    }
-
-    const jsonObject = RequestSerializer.arrayBufferToJson<Partial<Doc>>(
-      requestData.body,
-    );
-
     // Add a new doc id to the create request
     const uuid = self.crypto.randomUUID();
     const newRequestData = {
       ...requestData,
       body: RequestSerializer.objectToArrayBuffer({
-        ...jsonObject,
         id: uuid,
       }),
     };
@@ -175,22 +166,15 @@ export class ApiPlugin implements WorkboxPlugin {
       'doc-mutation',
     );
 
-    /**
-     * Create new item in the cache
-     */
-    const bodyMutate = (await this.initialRequest
-      .clone()
-      .json()) as Partial<Doc>;
-
     const newResponse: Doc = {
       title: '',
-      ...bodyMutate,
       id: uuid,
       content: '',
       created_at: new Date().toISOString(),
       creator: 'dummy-id',
       is_favorite: false,
-      nb_accesses: 1,
+      nb_accesses_direct: 1,
+      nb_accesses_ancestors: 1,
       updated_at: new Date().toISOString(),
       abilities: {
         accesses_manage: true,
