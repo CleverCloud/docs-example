@@ -73,6 +73,7 @@ DJANGO_CONFIGURATION="Development"
 DJANGO_SECRET_KEY="YourNewlyGeneratedKeyHere"
 DJANGO_SETTINGS_MODULE="impress.settings"
 DJANGO_SUPERUSER_PASSWORD="<your-password>"
+LOGIN_REDIRECT_URL="<docs-url>"
 OIDC_OP_JWKS_ENDPOINT: <keycloak-host>/realms/impress/protocol/openid-connect/certs
 OIDC_OP_AUTHORIZATION_ENDPOINT: <keycloak-host>/realms/impress/protocol/openid-connect/auth
 OIDC_OP_TOKEN_ENDPOINT: <keycloak-host>/realms/impress/protocol/openid-connect/token
