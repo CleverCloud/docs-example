@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+- 📝(doc) add publiccode.yml
+
 ## [2.5.0] - 2025-03-18
 
 ## Added
