@@ -66,7 +66,7 @@ This will expand to the current working directory where your setup.py is located
 APP_FOLDER="/src/backend"
 CC_PYTHON_MODULE="impress.wsgi:application"
 CC_PYTHON_VERSION="3"
-CC_TROUBLESHOOT="true"
+CC_RUN_SUCCEEDED_HOOK="cd src/backend && python manage.py migrate"
 CELLAR_STORAGE_BUCKET_NAME="impress-media-storage"
 DJANGO_ALLOWED_HOSTS="<docs-url>"
 DJANGO_CONFIGURATION="Development"
