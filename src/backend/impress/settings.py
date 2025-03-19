@@ -140,7 +140,7 @@ class Base(Configuration):
     # Map CELLAR credentials to AWS settings for S3 storage backend
     @property
     def AWS_S3_ENDPOINT_URL(self):
-        return self.CELLAR_ADDON_HOST
+        return f"https://{self.CELLAR_ADDON_HOST}"
 
     @property
     def AWS_ACCESS_KEY_ID(self):
