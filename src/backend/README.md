@@ -103,3 +103,23 @@ To host both backend and frontend **under the same domain**, leverage [the path 
 - Route: `/api/v1.0/`
 
 ⚠️ The trailing slash `/` at the end of the route is mandatory to prevent path duplication from NGINX.
+
+## Deploy Yjs server
+
+Create a Node.js application with the following variables:
+
+```env
+APP_FOLDER="/src/frontend/servers/y-provider"
+CC_NODE_BUILD_TOOL="yarn"
+CC_PRE_BUILD_HOOK="cd ./src/frontend/servers/y-provider && yarn install --frozen-lockfile && yarn build"
+CC_RUN_COMMAND="cd ./src/frontend/servers/y-provider && yarn start"
+COLLABORATION_LOGGING="true"
+COLLABORATION_SERVER_ORIGIN="<docs-url>"
+COLLABORATION_SERVER_SECRET="<collaboration-server-secret>"
+Y_PROVIDER_API_KEY="<y-provider-api-key>"
+```
+
+Add another clever remote to the repository, for example `git remote add clever-y-provider <clever-provided-git-remote>`. Push your code to Clever Cloud.
+
+⚠️ Enable at least a L dedicated build instance (**Information** tab), the build is ressources consuming.
+
