@@ -57,7 +57,7 @@ password: I'd<3ToTestDocs
 
 You can run Docs without Docker, natively or on Clever Cloud. Follow the doc in each repository for both the frontend and the backend.
 
-- [Fontend doc](src/frontend/README.md)
+- [Frontend doc](src/frontend/README.md)
 - [Backend doc](src/backend/README.md)
 
 ### Run it locally
