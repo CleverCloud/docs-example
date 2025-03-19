@@ -137,6 +137,23 @@ class Base(Configuration):
         environ_prefix=None,
     )
 
+    # Map CELLAR credentials to AWS settings for S3 storage backend
+    @property
+    def AWS_S3_ENDPOINT_URL(self):
+        return self.CELLAR_ADDON_HOST
+
+    @property
+    def AWS_ACCESS_KEY_ID(self):
+        return self.CELLAR_ADDON_KEY_ID
+
+    @property
+    def AWS_SECRET_ACCESS_KEY(self):
+        return self.CELLAR_ADDON_KEY_SECRET
+
+    @property
+    def AWS_STORAGE_BUCKET_NAME(self):
+        return self.CELLAR_STORAGE_BUCKET_NAME
+
     # Document images
     DOCUMENT_IMAGE_MAX_SIZE = values.Value(
         10 * (2**20),  # 10MB
