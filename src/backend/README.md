@@ -118,6 +118,11 @@ COLLABORATION_SERVER_ORIGIN="<docs-url>"
 COLLABORATION_SERVER_SECRET="<collaboration-server-secret>"
 Y_PROVIDER_API_KEY="<y-provider-api-key>"
 ```
+Connect it to the backend in **Service dependencies**, and expose the following configuration (**Exposed configuration**):
+
+```env
+COLLABORATION_SERVER_SECRET
+```
 
 Add another clever remote to the repository, for example `git remote add clever-y-provider <clever-provided-git-remote>`. Push your code to Clever Cloud.
 
