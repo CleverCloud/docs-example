@@ -118,41 +118,61 @@ class Base(Configuration):
         },
     }
 
-    # Media
-    CELLAR_ADDON_HOST = values.Value(
-        environ_name="CELLAR_ADDON_HOST", environ_prefix=None
+    # Default S3 connection settings
+    AWS_S3_ENDPOINT_URL = values.Value(
+        environ_name="AWS_S3_ENDPOINT_URL", environ_prefix=None
     )
-    CELLAR_ADDON_KEY_ID = values.Value(
-        environ_name="CELLAR_ADDON_KEY_ID", environ_prefix=None
+    AWS_S3_ACCESS_KEY_ID = values.Value(
+        environ_name="AWS_S3_ACCESS_KEY_ID", environ_prefix=None
     )
-    CELLAR_ADDON_KEY_SECRET = values.Value(
-        environ_name="CELLAR_ADDON_KEY_SECRET", environ_prefix=None
+    AWS_S3_SECRET_ACCESS_KEY = values.Value(
+        environ_name="AWS_S3_SECRET_ACCESS_KEY", environ_prefix=None
     )
     AWS_S3_REGION_NAME = values.Value(
         environ_name="AWS_S3_REGION_NAME", environ_prefix=None
     )
-    CELLAR_STORAGE_BUCKET_NAME = values.Value(
+    AWS_STORAGE_BUCKET_NAME = values.Value(
         "impress-media-storage",
-        environ_name="CELLAR_STORAGE_BUCKET_NAME",
+        environ_name="AWS_STORAGE_BUCKET_NAME",
         environ_prefix=None,
     )
+    # Adaptation to Cellar, doesn't seem to work
+
+    # Media
+    #CELLAR_ADDON_HOST = values.Value(
+    #    environ_name="CELLAR_ADDON_HOST", environ_prefix=None
+    #)
+    #CELLAR_ADDON_KEY_ID = values.Value(
+    #    environ_name="CELLAR_ADDON_KEY_ID", environ_prefix=None
+    #)
+    #CELLAR_ADDON_KEY_SECRET = values.Value(
+    #    environ_name="CELLAR_ADDON_KEY_SECRET", environ_prefix=None
+    #)
+    #AWS_S3_REGION_NAME = values.Value(
+    #    environ_name="AWS_S3_REGION_NAME", environ_prefix=None
+    #)
+    #CELLAR_STORAGE_BUCKET_NAME = values.Value(
+    #    "impress-media-storage",
+    #    environ_name="CELLAR_STORAGE_BUCKET_NAME",
+    #    environ_prefix=None,
+    #)
 
     # Map CELLAR credentials to AWS settings for S3 storage backend
-    @property
-    def AWS_S3_ENDPOINT_URL(self):
-        return f"https://{self.CELLAR_ADDON_HOST}"
+    #@property
+    #def AWS_S3_ENDPOINT_URL(self):
+    #    return f"https://{self.CELLAR_ADDON_HOST}"
 
-    @property
-    def AWS_ACCESS_KEY_ID(self):
-        return self.CELLAR_ADDON_KEY_ID
+    #@property
+    #def AWS_ACCESS_KEY_ID(self):
+    #    return self.CELLAR_ADDON_KEY_ID
 
-    @property
-    def AWS_SECRET_ACCESS_KEY(self):
-        return self.CELLAR_ADDON_KEY_SECRET
+    #@property
+    #def AWS_SECRET_ACCESS_KEY(self):
+    #    return self.CELLAR_ADDON_KEY_SECRET
 
-    @property
-    def AWS_STORAGE_BUCKET_NAME(self):
-        return self.CELLAR_STORAGE_BUCKET_NAME
+    #@property
+    #def AWS_STORAGE_BUCKET_NAME(self):
+    #    return self.CELLAR_STORAGE_BUCKET_NAME
 
     # Document images
     DOCUMENT_IMAGE_MAX_SIZE = values.Value(
