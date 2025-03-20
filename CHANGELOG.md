@@ -8,8 +8,15 @@ and this project adheres to
 
 ## [Unreleased]
 
+## Added
+
 - 📝(doc) add publiccode.yml
 
+## Fixed
+
+- 🐛(back) allow only images to be used with the cors-proxy #781
+
+>>>>>>> main
 ## [2.5.0] - 2025-03-18
 
 ## Added
