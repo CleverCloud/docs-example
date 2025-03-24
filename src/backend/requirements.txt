@@ -51,7 +51,7 @@ httpcore==1.0.7
 httpx==0.28.1
 icdiff==2.0.7
 idna==3.10
-impress @ file:///Users/julianavarro/wip/docs/src/backend
+impress @ file://${PWD}
 inflection==0.5.1
 iniconfig==2.0.0
 ipdb==0.13.13
