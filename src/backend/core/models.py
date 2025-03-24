@@ -13,6 +13,7 @@ from logging import getLogger
 from django.conf import settings
 from django.contrib.auth import models as auth_models
 from django.contrib.auth.base_user import AbstractBaseUser
+from django.contrib.postgres.fields import ArrayField
 from django.contrib.sites.models import Site
 from django.core import mail, validators
 from django.core.cache import cache
@@ -23,7 +24,7 @@ from django.db import models, transaction
 from django.db.models.functions import Left, Length
 from django.template.loader import render_to_string
 from django.utils import timezone
-from django.utils.functional import cached_property, lazy
+from django.utils.functional import cached_property
 from django.utils.translation import get_language, override
 from django.utils.translation import gettext_lazy as _
 
@@ -96,7 +97,7 @@ class LinkReachChoices(models.TextChoices):
         """
         # If no ancestors, return all options
         if not ancestors_links:
-            return {reach: LinkRoleChoices.values for reach in cls.values}
+            return dict.fromkeys(cls.values, LinkRoleChoices.values)
 
         # Initialize result with all possible reaches and role options as sets
         result = {reach: set(LinkRoleChoices.values) for reach in cls.values}
@@ -243,7 +244,7 @@ class User(AbstractBaseUser, BaseModel, auth_models.PermissionsMixin):
 
     language = models.CharField(
         max_length=10,
-        choices=lazy(lambda: settings.LANGUAGES, tuple)(),
+        choices=settings.LANGUAGES,
         default=None,
         verbose_name=_("language"),
         help_text=_("The language in which the user wants to see the interface."),
@@ -427,10 +428,12 @@ class DocumentQuerySet(MP_NodeQuerySet):
 
     def readable_per_se(self, user):
         """
-        Filters the queryset to return documents that the given user has
-        permission to read.
+        Filters the queryset to return documents on which the given user has
+        direct access, team access or link access. This will not return all the
+        documents that a user can read because it can be obtained via an ancestor.
         :param user: The user for whom readable documents are to be fetched.
-        :return: A queryset of documents readable by the user.
+        :return: A queryset of documents for which the user has direct access,
+            team access or link access.
         """
         if user.is_authenticated:
             return self.filter(
@@ -459,7 +462,9 @@ class DocumentManager(MP_NodeManager):
         """
         Filters documents based on user permissions using the custom queryset.
         :param user: The user for whom readable documents are to be fetched.
-        :return: A queryset of documents readable by the user.
+        :return: A queryset of documents for which the user has direct access,
+            team access or link access. This will not return all the documents
+            that a user can read because it can be obtained via an ancestor.
         """
         return self.get_queryset().readable_per_se(user)
 
@@ -486,6 +491,21 @@ class Document(MP_Node, BaseModel):
     )
     deleted_at = models.DateTimeField(null=True, blank=True)
     ancestors_deleted_at = models.DateTimeField(null=True, blank=True)
+    duplicated_from = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        related_name="duplicates",
+        editable=False,
+        blank=True,
+        null=True,
+    )
+    attachments = ArrayField(
+        models.CharField(max_length=255),
+        default=list,
+        editable=False,
+        blank=True,
+        null=True,
+    )
 
     _content = None
 
@@ -582,9 +602,13 @@ class Document(MP_Node, BaseModel):
 
     def get_content_response(self, version_id=""):
         """Get the content in a specific version of the document"""
-        return default_storage.connection.meta.client.get_object(
-            Bucket=default_storage.bucket_name, Key=self.file_key, VersionId=version_id
-        )
+        params = {
+            "Bucket": default_storage.bucket_name,
+            "Key": self.file_key,
+        }
+        if version_id:
+            params["VersionId"] = version_id
+        return default_storage.connection.meta.client.get_object(**params)
 
     def get_versions_slice(self, from_version_id="", min_datetime=None, page_size=None):
         """Get document versions from object storage with pagination and starting conditions"""
@@ -796,6 +820,7 @@ class Document(MP_Node, BaseModel):
             "cors_proxy": can_get,
             "descendants": can_get,
             "destroy": is_owner,
+            "duplicate": can_get,
             "favorite": can_get and user.is_authenticated,
             "link_configuration": is_owner_or_admin,
             "invite_owner": is_owner,

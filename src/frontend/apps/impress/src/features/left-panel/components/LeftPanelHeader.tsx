@@ -15,7 +15,15 @@ export const LeftPanelHeader = ({ children }: PropsWithChildren) => {
   const router = useRouter();
   const searchModal = useModal();
   const { authenticated } = useAuth();
-  useCmdK(searchModal.open);
+  useCmdK(() => {
+    const isEditorToolbarOpen =
+      document.getElementsByClassName('bn-formatting-toolbar').length > 0;
+    if (isEditorToolbarOpen) {
+      return;
+    }
+
+    searchModal.open();
+  });
   const { togglePanel } = useLeftPanelStore();
 
   const { mutate: createDoc } = useCreateDoc({

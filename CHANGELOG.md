@@ -10,7 +10,17 @@ and this project adheres to
 
 ## Added
 
-- 📝(doc) add publiccode.yml
+- 📄(legal) Require contributors to sign a DCO #779
+
+## Changed
+
+- ♻️(frontend) Integrate UI kit #783
+
+## [2.6.0] - 2025-03-21
+
+## Added
+
+- 📝(doc) add publiccode.yml #770
 
 ## Changed
 
@@ -19,6 +29,10 @@ and this project adheres to
 ## Fixed
 
 - 🐛(back) allow only images to be used with the cors-proxy #781
+- 🐛(backend) stop returning inactive users on the list endpoint #636
+- 🔒️(backend) require at least 5 characters to search for users #636
+- 🔒️(back) throttle user list endpoint #636
+- 🔒️(back) remove pagination and limit to 5 for user list endpoint #636
 
 
 ## [2.5.0] - 2025-03-18
@@ -118,6 +132,8 @@ and this project adheres to
 
 ## Added
 
+- ✨(backend) add duplicate action to the document API endpoint
+- ⚗️(backend) add util to extract text from base64 yjs document
 - ✨(backend) add soft delete and restore API endpoints to documents #516
 - ✨(backend) allow organizing documents in a tree structure #516
 - ✨(backend) add "excerpt" field to document list serializer #516
@@ -481,7 +497,8 @@ and this project adheres to
 - ✨(frontend) Coming Soon page (#67)
 - 🚀 Impress, project to manage your documents easily and collaboratively.
 
-[unreleased]: https://github.com/numerique-gouv/impress/compare/v2.5.0...main
+[unreleased]: https://github.com/numerique-gouv/impress/compare/v2.6.0...main
+[v2.5.0]: https://github.com/numerique-gouv/impress/releases/v2.6.0
 [v2.5.0]: https://github.com/numerique-gouv/impress/releases/v2.5.0
 [v2.4.0]: https://github.com/numerique-gouv/impress/releases/v2.4.0
 [v2.3.0]: https://github.com/numerique-gouv/impress/releases/v2.3.0
