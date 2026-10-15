@@ -1,0 +1,19 @@
+:{$PORT:8080} {
+  handle /media/* {
+    route {
+      forward_auth https://{$DOCS_BACKEND_HOST} {
+        uri /api/v1.0/documents/media-auth/
+        header_up Host {$DOCS_BACKEND_HOST}
+        header_up X-Forwarded-Proto https
+        header_up X-Original-URL {uri}
+        copy_headers Authorization X-Amz-Date X-Amz-Content-SHA256
+      }
+      uri strip_prefix /media
+      rewrite * /{$AWS_STORAGE_BUCKET_NAME}{uri}
+      reverse_proxy https://{$CELLAR_HOST} {
+        header_up Host {$CELLAR_HOST}
+      }
+    }
+  }
+  respond 404
+}

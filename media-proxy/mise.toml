@@ -1,0 +1,10 @@
+[tools]
+"github:caddyserver/caddy" = "2.11.4"
+
+[tasks.build]
+description = "Install and verify Caddy"
+run = "caddy version"
+
+[tasks.run]
+description = "Start the authenticated media proxy"
+run = "caddy run --config Caddyfile"
