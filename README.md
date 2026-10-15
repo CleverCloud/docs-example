@@ -1,292 +1,287 @@
-<p align="center">
-  <a href="https://github.com/suitenumerique/docs">
-    <img alt="Docs" src="documentation/assets/banner-docs.png" width="100%" />
-  </a>
-</p>
+![Logo Clever Cloud](./assets/clever-cloud-logo.png)
 
-<p align="center">
-  <a href="https://github.com/suitenumerique/docs/stargazers/">
-    <img src="https://img.shields.io/github/stars/suitenumerique/docs" alt="">
-  </a>
-  <a href="https://github.com/suitenumerique/docs/blob/main/CONTRIBUTING.md">
-    <img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg"/>
-  </a>
-  <a href="https://github.com/suitenumerique/docs/blob/main/LICENSE">
-    <img alt="MIT License" src="https://img.shields.io/github/license/suitenumerique/docs"/>
-  </a>
-  <a href="https://snyk.io/test/github/suitenumerique/docs">
-    <img alt="MIT License" src="https://snyk.io/test/github/suitenumerique/docs/badge.svg"/>
-  </a>
-  <a href="https://digitalpublicgoods.net/r/docs-collaborative-text-editing">
-    <img src="https://img.shields.io/badge/Verified-DPG-3333AB?logo=data:image/svg%2bxml;base64,PHN2ZyB3aWR0aD0iMzEiIGhlaWdodD0iMzMiIHZpZXdCb3g9IjAgMCAzMSAzMyIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE0LjIwMDggMjEuMzY3OEwxMC4xNzM2IDE4LjAxMjRMMTEuNTIxOSAxNi40MDAzTDEzLjk5MjggMTguNDU5TDE5LjYyNjkgMTIuMjExMUwyMS4xOTA5IDEzLjYxNkwxNC4yMDA4IDIxLjM2NzhaTTI0LjYyNDEgOS4zNTEyN0wyNC44MDcxIDMuMDcyOTdMMTguODgxIDUuMTg2NjJMMTUuMzMxNCAtMi4zMzA4MmUtMDVMMTEuNzgyMSA1LjE4NjYyTDUuODU2MDEgMy4wNzI5N0w2LjAzOTA2IDkuMzUxMjdMMCAxMS4xMTc3TDMuODQ1MjEgMTYuMDg5NUwwIDIxLjA2MTJMNi4wMzkwNiAyMi44Mjc3TDUuODU2MDEgMjkuMTA2TDExLjc4MjEgMjYuOTkyM0wxNS4zMzE0IDMyLjE3OUwxOC44ODEgMjYuOTkyM0wyNC44MDcxIDI5LjEwNkwyNC42MjQxIDIyLjgyNzdMMzAuNjYzMSAyMS4wNjEyTDI2LjgxNzYgMTYuMDg5NUwzMC42NjMxIDExLjExNzdMMjQuNjI0MSA5LjM1MTI3WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==" alt="DPG Badge"/>
-  </a>
-</p>
+# Deploy Docs (La Suite numérique) on Clever Cloud
+[![Clever Cloud - PaaS](https://img.shields.io/badge/Clever%20Cloud-PaaS-orange)](https://clever-cloud.com)
 
-<p align="center">
-  <a href="https://matrix.to/#/#docs-official:matrix.org">Chat on Matrix</a> •
-  <a href="documentation/">Documentation</a> •
-  <a href="#try-docs">Try Docs</a> •
-  <a href="mailto:docs@numerique.gouv.fr">Contact us</a>
-</p>
+This repository is a fork of [Docs](https://github.com/suitenumerique/docs), the open source
+collaborative note-taking, wiki and documentation platform built by the French and German
+governments (Django REST Framework, Next.js, BlockNote.js and Yjs). It tracks upstream release
+**v5.7.0** and adds the few files needed to run it natively on Clever Cloud, without Docker or
+Kubernetes.
 
-# La Suite Docs: Collaborative Text Editing
+Docs is made of three components, deployed here as four Clever Cloud applications sharing a
+single domain thanks to [path routing](https://www.clever.cloud/developers/doc/administrate/domain-names/):
 
-**Docs, where your notes can become knowledge through live collaboration.**
+| Application   | Runtime          | Route                              | Purpose                                         |
+|---------------|------------------|------------------------------------|-------------------------------------------------|
+| Backend       | Python 3.14 (uv) | `/api/`                            | Django API, OIDC authentication, migrations     |
+| Collaboration | Node.js 24       | `/collaboration/`, `/api/convert/` | Yjs live editing server and document conversion |
+| Frontend      | Static (Caddy)   | `/`                                | Next.js static export                           |
+| Media proxy   | Linux (Caddy)    | `/media/`                          | Authenticated access to private Cellar objects  |
 
-Docs is an open-source collaborative editor that helps teams write, organize, and share knowledge together - in real time.
+They rely on a PostgreSQL, a Redis and a Cellar (S3-compatible) add-on, and on an OpenID Connect
+provider such as the Clever Cloud Keycloak add-on.
 
-![Live collaboration demo](documentation/assets/mirabeau.png)
+The full walkthrough is also available in the
+[Clever Cloud Docs guide](https://www.clever.cloud/developers/guides/docs/).
 
+## How it works
 
-## What is Docs?
+- **Backend** – the Python runtime syncs `src/backend` with `uv` (`APP_FOLDER=src/backend`).
+  `clevercloud.sh` maps the linked add-on variables (`POSTGRESQL_ADDON_URI`, `CELLAR_ADDON_*`) to
+  the names Docs expects (`DATABASE_URL`, `AWS_S3_*`). It runs `migrate` as a post-build hook and
+  starts Uvicorn on `0.0.0.0:8080` with `CC_PYTHON_UV_RUN_COMMAND`. Redis provides `REDIS_URL`
+  directly.
+- **Collaboration** – the Node.js runtime installs the Yarn workspace in `src/frontend`, builds
+  the `server-y-provider` workspace and starts it.
+- **Frontend** – the Static runtime builds the Next.js static export (`yarn app:build`, L build
+  instance) and serves it with Caddy (`frontend-static/Caddyfile`), which rewrites dynamic routes
+  such as `/docs/<uuid>/` to the exported page, like the upstream nginx configuration does.
+- **Media proxy** – the Linux runtime installs Caddy through Mise (`media-proxy/mise.toml`). For
+  each `/media/` request it asks the backend whether the current user may read the object, then
+  forwards the signed request to the private Cellar bucket.
 
-Docs is an open-source alternative to tools like Notion or Google Docs, focused on:
+Some build-time dependencies (`i18next-parser`) still declare `node <= 22` in their `engines`
+field. Node.js 24 LTS works fine, so the frontend and collaboration apps set
+`YARN_IGNORE_ENGINES=true`.
 
-- Real-time collaboration
-- Clean, structured documents
-- Knowledge organization
-- Data ownership & self-hosting
+## Project structure
 
-***Built for public organizations, companies, and open communities.***
+Only the Clever Cloud specific files are listed; everything else is upstream Docs.
 
-## Why use Docs?
-
-### Writing
-
-- Rich-text & Markdown editing
-- Slash commands & block system
-- Beautiful formatting
-- Offline editing
-- Optional AI writing helpers (rewrite, summarize, translate, fix typos)
-
-### Collaboration
-
-- Live cursors & presence
-- Comments & sharing
-- Granular access control
-
-### Knowledge management
-
-- Subpages & hierarchy
-- Searchable content
-
-### Presentations
-
-- Simple structure, based on delimiter (`---`)
-- Full screen option
-- PDF exports
-- Keyboard navigation
-- Start presention from a block
-- Presentation link
-
-![demo of slide mode in Docs](https://upload.wikimedia.org/wikipedia/commons/6/64/Docs%27_slidemode.gif?_=20260722173451)
-
-### Export/Import
-
-- Import to `.docx` and `.md`
-- Export to `.docx`, `.odt`, `.pdf`
-
-### AI features
-Docs has optional AI features. 
-They're model agnostic and gateway agnostic.
-You can either run your own or just use your AI provider. 
-The config only requires an API key and a URL.
-
-#### V1: You select, AI replaces 
-This version features a simple select and replace workflow. 
-Your selection is the context and the instruction for the model. 
-The AI feedback replaces your selection and is designed is optimized for Docs formatting.
-
-![Demo of Docs AI v1](documentation/assets/docs_ai_feature_v1.gif)
-
-#### V2: AI toolbar, AI cursor (beta)
-This version uses [BlockNote AI integration](https://www.blocknotejs.org/docs/features/ai). It features: 
-- an AI toolbar at selection in which you can prompt, accept, reject and iterate AI feedback
-- an AI cursor, which interacts with the document, just as another collaborator in your document
-- document context is used on top of the selection
-
-![Demo of Docs AI v2](documentation/assets/docs_ai_feature_v2.gif)
-
-
-### Interoperability
-Docs comes with a [resource server API](documentation/resource_server.md) and a [server to server API](https://github.com/suitenumerique/docs/blob/c647cb62f1cbf1af9841ae8cb3818e34bb566c9c/documentation/env.md#L76-L77) which allows for awesome integrations.
-
-#### A concrete example: [Meet](https://github.com/suitenumerique/meet/)'s transcriptions
-If you're running a Meet instance, with simple config (`DJANGO_SERVER_TO_SERVER_API_TOKENS`) you can push your meeting transcript to Docs and give access to the user who requested it.
-
-![transcript in Docs screenshot](documentation/assets/transcripts.png)
-
-## Try Docs
-
-Experience Docs instantly - no installation required.
-
-- 🔗 [Open a live demo document][demo]
-- 🌍 [Browse public instances][instances]
-
-[demo]: https://demo.docs.la-suite.eu/docs/6d1b6f7f-db33-4673-9277-4bf47b9881ec/
-[instances]: documentation/instances.md
-
-## Self-hosting
-
-Docs supports Kubernetes, Docker Compose, and community-provided methods such as Nix and YunoHost.
-
-Get started with self-hosting: [Installation guide](documentation/installation/README.md)
-
-> [!WARNING]
-> Some advanced features (for example: `Export as PDF`) rely on XL packages from Blocknote.
-> These packages are licensed under GPL and are **not MIT-compatible**
->
-> You can run Docs **without these packages** by building with:
->
-> ```bash
-> PUBLISH_AS_MIT=true
-> ```
->
-> This builds an image of Docs without non-MIT features.
->
-> More details can be found in [environment variables](documentation/env.md)
-
-## Local Development (for contributors)
-
-Run Docs locally for development and testing.
-
-> [!WARNING]
-> This setup is intended **for development and testing only**.
-> It uses Minio as an S3-compatible storage backend, but any S3-compatible service can be used.
-
-### Prerequisites
-
-- Docker
-- Docker Compose
-- GNU Make
-
-Verify installation:
-
-```bash
-docker -v
-docker compose version
+```
+.
+├── clevercloud.sh            # Backend helper: maps add-on variables, runs migrate / uvicorn
+├── frontend-static/
+│   └── Caddyfile             # Frontend static server with Docs route rewrites
+├── media-proxy/
+│   ├── mise.toml             # Installs Caddy, defines the build and run tasks
+│   └── Caddyfile             # forward_auth to the backend, then proxy to Cellar
+├── src/
+│   ├── backend/              # Django application (pyproject.toml + uv.lock)
+│   └── frontend/             # Yarn workspace: apps/impress (Next.js) + servers/y-provider
+├── documentation/            # Upstream documentation (env variables, customization…)
+└── .last-checked             # Date of the last maintenance check of this example
 ```
 
-> If you encounter permission errors, you may need to use `sudo`, or add your user to the `docker` group.
+## Deployment steps
 
-### Bootstrap the project
+To deploy Docs, you need [Clever Tools](https://github.com/CleverCloud/clever-tools), Git, jq,
+OpenSSL, `s3cmd` (or another S3 client) and a domain name. The commands below run from the root
+of this repository.
 
-The easiest way to start is using GNU Make:
+### 1. Create the applications and add-ons
+
+```bash
+clever create -t python myDocsBackend -a myDocsBackend
+clever create -t static myDocsFrontend -a myDocsFrontend
+clever create -t node myDocsCollaboration -a myDocsCollaboration
+clever create -t linux myDocsMedia -a myDocsMedia
+
+clever addon create postgresql-addon myDocsPostgreSQL -p xxs_sml -l myDocsBackend
+clever addon create redis-addon myDocsRedis -p s_mono -l myDocsBackend
+clever addon create cellar-addon myDocsCellar -l myDocsBackend
+clever addon create keycloak myDocsKeycloak -p base
+```
+
+The PostgreSQL `dev` plan is enough for a test instance.
+
+### 2. Create a private Cellar bucket
+
+`clever addon env` expects the add-on ID (`addon_…`), shown by `clever addon list`:
+
+```bash
+export DOCS_BUCKET="your-unique-docs-bucket"
+CELLAR_ENV="$(clever addon env <myDocsCellar addon ID> -F json)"
+export CELLAR_HOST="$(jq -er '.CELLAR_ADDON_HOST' <<<"$CELLAR_ENV")"
+s3cmd --access_key="$(jq -er '.CELLAR_ADDON_KEY_ID' <<<"$CELLAR_ENV")" \
+  --secret_key="$(jq -er '.CELLAR_ADDON_KEY_SECRET' <<<"$CELLAR_ENV")" \
+  --host="$CELLAR_HOST" --host-bucket="$CELLAR_HOST" \
+  --ssl mb "s3://$DOCS_BUCKET"
+unset CELLAR_ENV
+```
+
+Do not add a public bucket policy: the media proxy only forwards requests signed by Docs.
+
+### 3. Configure the shared domain
+
+```bash
+export DOCS_DOMAIN="docs.example.com"
+export DOCS_URL="https://$DOCS_DOMAIN"
+clever domain add "$DOCS_DOMAIN" -a myDocsFrontend
+clever domain add "$DOCS_DOMAIN/api/" -a myDocsBackend
+clever domain add "$DOCS_DOMAIN/collaboration/" -a myDocsCollaboration
+clever domain add "$DOCS_DOMAIN/api/convert/" -a myDocsCollaboration
+clever domain add "$DOCS_DOMAIN/media/" -a myDocsMedia
+```
+
+Keep the trailing slash on each path route. A `*.cleverapps.io` subdomain also works for testing.
+
+### 4. Configure Keycloak
+
+Open the Keycloak add-on from the Console (or with `clever keycloak open`, after
+`clever features enable operators`) and log in with the initial credentials it displays. Then:
+
+- create a realm named `impress`
+- create an OpenID Connect client `impress` with client authentication and the standard flow
+- set its root and home URLs to `$DOCS_URL`, add `$DOCS_URL/api/v1.0/callback/*` to the valid
+  redirect URIs, `$DOCS_URL/*` to the post-logout redirect URIs and `$DOCS_URL` to the web origins
+- copy the client secret, and create users (or plug an identity provider)
+
+```bash
+export KEYCLOAK_URL="https://<your-keycloak-host>"
+export OIDC_CLIENT_SECRET="<impress client secret>"
+```
+
+### 5. Configure the applications
+
+```bash
+export DJANGO_SECRET_KEY="$(openssl rand -base64 48)"
+export COLLABORATION_SERVER_SECRET="$(openssl rand -base64 48)"
+export Y_PROVIDER_API_KEY="$(openssl rand -base64 48)"
+OIDC="$KEYCLOAK_URL/realms/impress/protocol/openid-connect"
+
+# Backend
+clever env set APP_FOLDER src/backend -a myDocsBackend
+clever env set CC_PYTHON_VERSION 3.14 -a myDocsBackend
+clever env set CC_POST_BUILD_HOOK './clevercloud.sh migrate' -a myDocsBackend
+clever env set CC_PYTHON_UV_RUN_COMMAND '../../clevercloud.sh run' -a myDocsBackend
+clever env set DATA_DIR /tmp/docs -a myDocsBackend
+clever env set DJANGO_CONFIGURATION Production -a myDocsBackend
+clever env set DJANGO_SETTINGS_MODULE impress.settings -a myDocsBackend
+clever env set DJANGO_SECRET_KEY "$DJANGO_SECRET_KEY" -a myDocsBackend
+clever env set DJANGO_ALLOWED_HOSTS "$DOCS_DOMAIN" -a myDocsBackend
+clever env set DJANGO_CSRF_TRUSTED_ORIGINS "$DOCS_URL" -a myDocsBackend
+clever env set CORS_ALLOWED_ORIGINS "$DOCS_URL" -a myDocsBackend
+clever env set IMPRESS_BASE_URL "$DOCS_URL" -a myDocsBackend
+clever env set LOGIN_REDIRECT_URL "$DOCS_URL" -a myDocsBackend
+clever env set LOGIN_REDIRECT_URL_FAILURE "$DOCS_URL" -a myDocsBackend
+clever env set LOGOUT_REDIRECT_URL "$DOCS_URL" -a myDocsBackend
+clever env set AWS_STORAGE_BUCKET_NAME "$DOCS_BUCKET" -a myDocsBackend
+clever env set AWS_S3_REGION_NAME auto -a myDocsBackend
+clever env set AWS_REQUEST_CHECKSUM_CALCULATION when_required -a myDocsBackend
+clever env set AWS_RESPONSE_CHECKSUM_VALIDATION when_required -a myDocsBackend
+clever env set COLLABORATION_API_URL "$DOCS_URL/collaboration/api/" -a myDocsBackend
+clever env set COLLABORATION_WS_URL "wss://$DOCS_DOMAIN/collaboration/ws/" -a myDocsBackend
+clever env set COLLABORATION_SERVER_SECRET "$COLLABORATION_SERVER_SECRET" -a myDocsBackend
+clever env set Y_PROVIDER_API_BASE_URL "$DOCS_URL/" -a myDocsBackend
+clever env set Y_PROVIDER_API_KEY "$Y_PROVIDER_API_KEY" -a myDocsBackend
+clever env set OIDC_OP_AUTHORIZATION_ENDPOINT "$OIDC/auth" -a myDocsBackend
+clever env set OIDC_OP_JWKS_ENDPOINT "$OIDC/certs" -a myDocsBackend
+clever env set OIDC_OP_LOGOUT_ENDPOINT "$OIDC/logout" -a myDocsBackend
+clever env set OIDC_OP_TOKEN_ENDPOINT "$OIDC/token" -a myDocsBackend
+clever env set OIDC_OP_USER_ENDPOINT "$OIDC/userinfo" -a myDocsBackend
+clever env set OIDC_REDIRECT_ALLOWED_HOSTS "$DOCS_DOMAIN" -a myDocsBackend
+clever env set OIDC_RP_CLIENT_ID impress -a myDocsBackend
+clever env set OIDC_RP_CLIENT_SECRET "$OIDC_CLIENT_SECRET" -a myDocsBackend
+clever env set OIDC_RP_SCOPES 'openid email profile' -a myDocsBackend
+clever env set OIDC_RP_SIGN_ALGO RS256 -a myDocsBackend
+clever env set OIDC_USERINFO_FULLNAME_FIELDS 'given_name,family_name' -a myDocsBackend
+clever env set OIDC_USERINFO_SHORTNAME_FIELD preferred_username -a myDocsBackend
+
+# Frontend (static export, needs an L build instance)
+clever env set APP_FOLDER src/frontend -a myDocsFrontend
+clever env set CC_NODE_VERSION 24 -a myDocsFrontend
+clever env set CC_BUILD_COMMAND '. /home/bas/.nvm/nvm.sh && nvm use "$CC_NODE_VERSION" && yarn install --frozen-lockfile && yarn app:build' -a myDocsFrontend
+clever env set CC_WEBROOT /src/frontend/apps/impress/out -a myDocsFrontend
+clever env set CC_STATIC_CADDYFILE ../../frontend-static/Caddyfile -a myDocsFrontend
+clever env set CC_OVERRIDE_BUILDCACHE 'src/frontend/apps/impress/out:frontend-static' -a myDocsFrontend
+clever env set NEXT_PUBLIC_API_BASE_PATH / -a myDocsFrontend
+clever env set NEXT_PUBLIC_API_ORIGIN "$DOCS_URL" -a myDocsFrontend
+clever env set NEXT_PUBLIC_PUBLISH_AS_MIT true -a myDocsFrontend
+clever env set NEXT_PUBLIC_SW_DEACTIVATED true -a myDocsFrontend
+clever env set YARN_IGNORE_ENGINES true -a myDocsFrontend
+clever env set -a myDocsFrontend NODE_OPTIONS -- --max-old-space-size=4096
+clever scale --build-flavor L -a myDocsFrontend
+
+# Collaboration server
+clever env set APP_FOLDER src/frontend -a myDocsCollaboration
+clever env set CC_NODE_VERSION 24 -a myDocsCollaboration
+clever env set CC_NODE_BUILD_TOOL yarn -a myDocsCollaboration
+clever env set CC_NODE_DEV_DEPENDENCIES true -a myDocsCollaboration
+clever env set CC_POST_BUILD_HOOK 'cd src/frontend && yarn COLLABORATION_SERVER build' -a myDocsCollaboration
+clever env set CC_RUN_COMMAND 'cd src/frontend && yarn COLLABORATION_SERVER start' -a myDocsCollaboration
+clever env set COLLABORATION_BACKEND_BASE_URL "$DOCS_URL" -a myDocsCollaboration
+clever env set COLLABORATION_LOGGING true -a myDocsCollaboration
+clever env set COLLABORATION_SERVER_ORIGIN "$DOCS_URL" -a myDocsCollaboration
+clever env set COLLABORATION_SERVER_SECRET "$COLLABORATION_SERVER_SECRET" -a myDocsCollaboration
+clever env set Y_PROVIDER_API_KEY "$Y_PROVIDER_API_KEY" -a myDocsCollaboration
+clever env set YARN_IGNORE_ENGINES true -a myDocsCollaboration
+
+# Media proxy (no Cellar credentials: Docs signs each authorized request)
+clever env set CC_MISE_FILE_PATH media-proxy/mise.toml -a myDocsMedia
+clever env set DOCS_BACKEND_HOST "$DOCS_DOMAIN" -a myDocsMedia
+clever env set CELLAR_HOST "$CELLAR_HOST" -a myDocsMedia
+clever env set AWS_STORAGE_BUCKET_NAME "$DOCS_BUCKET" -a myDocsMedia
+```
+
+`NODE_OPTIONS` uses `--` so that Clever Tools does not read its value as an option. The frontend
+is built on a dedicated instance and only the build cache reaches the runtime instance:
+`CC_OVERRIDE_BUILDCACHE` (relative to the repository root) keeps both the exported site and the
+Caddyfile, and `CC_STATIC_CADDYFILE` is relative to `APP_FOLDER`.
+
+### 6. Deploy
+
+```bash
+clever deploy -a myDocsBackend
+clever deploy -a myDocsCollaboration
+clever deploy -a myDocsFrontend
+clever deploy -a myDocsMedia
+```
+
+Then open `$DOCS_URL`, sign in through Keycloak, create a document and upload an image. You can
+also check the public configuration endpoint and that anonymous media requests are rejected:
+
+```bash
+curl -sS "$DOCS_URL/api/v1.0/config/" | jq .
+curl -sS -o /dev/null -w '%{http_code}\n' "$DOCS_URL/media/not-authorized"   # 403
+```
+
+### Update Docs
+
+Back up PostgreSQL, rebase the Clever Cloud files onto the new upstream tag and redeploy the four
+applications. The backend build hook applies pending migrations.
+
+```bash
+git remote add upstream https://github.com/suitenumerique/docs.git
+git fetch upstream --tags
+git rebase vX.Y.Z
+```
+
+## Running locally
+
+Docs is developed with Docker Compose. With Docker and GNU Make installed:
 
 ```bash
 make bootstrap FLUSH_ARGS='--no-input'
 ```
 
-This builds the `app-dev` and `frontend-dev` containers, installs dependencies, runs database migrations, and compiles translations.
+Then open <http://localhost:3000> and log in with `impress` / `impress`. See the
+[upstream README](https://github.com/suitenumerique/docs#readme) and the
+[`documentation/`](./documentation/) folder for the other Make rules, environment variables and
+customization options.
 
-It is recommended to run this command after pulling new code.
+## Troubleshooting
 
-Start services:
-
-```bash
-make run
-```
-
-Open <https://localhost:3000>
-
-Default credentials (development only):
-
-```md
-username: impress
-password: impress
-```
-
-### Frontend development mode
-
-For frontend work, running outside Docker is often more convenient:
-
-```bash
-make frontend-development-install
-make run-frontend-development
-```
-
-### Backend only
-
-Starting all services except the frontend container:
-
-```bash
-make run-backend
-```
-
-### Tests & Linting
-
-```bash
-make frontend-test
-make frontend-lint
-```
-
-Backend tests can be run without docker. This is useful to configure PyCharm or VSCode to do it. 
-Removing docker for testing requires to overwrite some URL and port values that are different in and out of 
-Docker. `env.d/development/common` contains all variables, some of them having to be overwritten by those in
-`env.d/development/common.test`.
-
-### Demo content
-
-Create a basic demo site:
-
-```bash
-make demo
-```
-
-### More Make targets
-
-To check all available Make rules:
-
-```bash
-make help
-```
-
-### Django admin
-
-Create a superuser:
-
-```bash
-make superuser
-```
-
-Admin UI: <http://localhost:8071/admin>
+1. Check the logs of each application: `clever logs -a myDocsBackend` (and so on).
+2. Verify the environment variables: `clever env -a myDocsBackend`.
+3. The frontend build is memory hungry: keep the L build instance and `NODE_OPTIONS`.
+4. `yarn install` failing with `The engine "node" is incompatible` means `YARN_IGNORE_ENGINES` is
+   missing.
+5. A `400 Bad Request` with `DisallowedHost` in the backend logs during deployment comes from the
+   internal health check and can be ignored. Check that `DJANGO_ALLOWED_HOSTS` matches your domain.
+6. If `/docs/<uuid>/` links return the 404 page, the frontend is served by Static Web Server
+   instead of Caddy: check `CC_OVERRIDE_BUILDCACHE` and `CC_STATIC_CADDYFILE`.
+7. Login errors usually come from the Keycloak client: check the redirect URIs and the secret.
 
 ## Contributing
 
-This project is community-driven and PRs are welcome.
+Contributions to improve this deployment example are welcome! Please feel free to submit pull
+requests or open issues for any enhancements or bug fixes. Contributions to Docs itself go to the
+[upstream repository](https://github.com/suitenumerique/docs/blob/main/CONTRIBUTING.md).
 
-- [Contribution guide](CONTRIBUTING.md)
-- [Translations](https://crowdin.com/project/lasuite-docs)
-- [Chat with us!](https://matrix.to/#/#docs-official:matrix.org)
+## License
 
-## Roadmap
-
-Curious where Docs is headed?
-
-Explore upcoming features, priorities and long-term direction on our [public roadmap](https://docs.numerique.gouv.fr/docs/d1d3788e-c619-41ff-abe8-2d079da2f084/).
-
-## License 📝
-
-This work is released under the MIT License (see [LICENSE](https://github.com/suitenumerique/docs/blob/main/LICENSE)).
-
-While Docs is a public-driven initiative, our license choice is an invitation for private sector actors to use, sell and contribute to the project.
-
-## Credits ❤️
-
-### Stack
-
-Docs is built on top of [Django Rest Framework](https://www.django-rest-framework.org/), [Next.js](https://nextjs.org/), [ProseMirror](https://prosemirror.net/), [BlockNote.js](https://www.blocknotejs.org/), [HocusPocus](https://tiptap.dev/docs/hocuspocus/introduction), and [Yjs](https://yjs.dev/). We thank the contributors of all these projects for their awesome work!
-
-We are proud sponsors of [BlockNotejs](https://www.blocknotejs.org/) and [Yjs](https://yjs.dev/).
-
----
-
-### Gov ❤️ open source
-
-Docs is the result of a joint initiative led by the French 🇫🇷 ([DINUM](https://www.numerique.gouv.fr/dinum/)) Government and German 🇩🇪 government ([ZenDiS](https://zendis.de/)).
-
-We are always looking for new public partners (we are currently onboarding the Netherlands 🇳🇱), feel free to [contact us](mailto:docs@numerique.gouv.fr) if you are interested in using or contributing to Docs.
-
-<p align="center">
-  <img src="documentation/assets/europe_opensource.png" width="50%"/ alt="Europe Opensource">
-</p>
+Docs is released under the MIT License (see [LICENSE](./LICENSE)). Some advanced features (such
+as PDF export) rely on AGPL-3.0 BlockNote XL packages: this example sets
+`NEXT_PUBLIC_PUBLISH_AS_MIT=true` to build without them.

@@ -4,6 +4,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026-10-15] – Clever Cloud example maintenance
+
+### Changed
+
+- Upstream Docs: v3.3.0+ (main of 2025-06-26) → v5.7.0 (⚠️ MAJOR, two major versions: v4 and v5)
+- Engine: backend Python 3.13 (Dockerfile) → 3.14 via `CC_PYTHON_VERSION` and uv (upstream now requires `~=3.14.0`)
+- Engine: frontend and collaboration server on Node.js 24 LTS (`CC_NODE_VERSION=24`)
+- Dependencies follow the upstream v5.7.0 lockfiles (`uv.lock`, `yarn.lock`), notably Next.js 15.3 → 16.3 (⚠️ MAJOR), Hocuspocus 2.15 → 3.4 (⚠️ MAJOR), mozilla-django-oidc 4.0 → 5.0 (⚠️ MAJOR), BlockNote 0.32 → 0.54, Django 5.2.3 → 5.2.17, Django REST Framework 3.16 → 3.17
+- Backend dependencies are now managed with `uv` (`pyproject.toml` + `uv.lock`), as upstream does
+- README rewritten to the Clever Cloud example format, with the full native deployment procedure
+
+### Added
+
+- `clevercloud.sh`: backend helper mapping the PostgreSQL and Cellar add-on variables, running migrations and Uvicorn
+- `media-proxy/`: Caddy 2.11.4 (installed with Mise) authenticated proxy from `/media/` to the private Cellar bucket
+- `frontend-static/Caddyfile`: serves the static frontend with the upstream route rewrites, so `/docs/<uuid>/` links open directly
+- `.last-checked` maintenance stamp
+
+### Notes
+
+- Docs v6.0.0 (published 2026-10-09) held back by the 14-day supply-chain rule
+- Caddy 2.11.6 and 2.11.7 held back by the 14-day rule (pinned 2.11.4)
+- Python 3.15.0 (2026-10-09) not used: too recent and outside upstream `requires-python`
+- Node.js 26 becomes LTS on 2026-10-28: Node.js 24 stays the latest LTS for now
+- `YARN_IGNORE_ENGINES=true` is needed on Node.js 24 because `i18next-parser` still declares `node <= 22`
+
 ## [Unreleased]
 
 ## [v5.7.0] - 2026-09-15
