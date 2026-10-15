@@ -117,6 +117,10 @@ clever domain add "$DOCS_DOMAIN/media/" -a myDocsMedia
 
 Keep the trailing slash on each path route. A `*.cleverapps.io` subdomain also works for testing.
 
+Always open Docs through `$DOCS_URL`. The default `app-<id>.cleverapps.io` domain of each
+application only reaches that application: on the frontend's own domain, the API calls under
+`/api/` are not routed to the backend and the page stays stuck on a loading spinner.
+
 ### 4. Configure Keycloak
 
 Open the Keycloak add-on from the Console (or with `clever keycloak open`, after
@@ -268,11 +272,17 @@ customization options.
 3. The frontend build is memory hungry: keep the L build instance and `NODE_OPTIONS`.
 4. `yarn install` failing with `The engine "node" is incompatible` means `YARN_IGNORE_ENGINES` is
    missing.
-5. A `400 Bad Request` with `DisallowedHost` in the backend logs during deployment comes from the
-   internal health check and can be ignored. Check that `DJANGO_ALLOWED_HOSTS` matches your domain.
-6. If `/docs/<uuid>/` links return the 404 page, the frontend is served by Static Web Server
+5. A `DisallowedHost` traceback followed by `GET / HTTP/1.1" 400 Bad Request` in the backend logs
+   after each deployment or restart is harmless. Clever Cloud's health check calls the instance on
+   its internal IP (e.g. `10.2.x.x:8080`), Django rejects that host, and the 400 is still accepted
+   ("within expected range 200...500"), so the deployment succeeds. Real traffic uses your domain:
+   only worry if `DJANGO_ALLOWED_HOSTS` does not match it.
+6. A page stuck on a loading spinner usually means you opened the frontend's own
+   `app-<id>.cleverapps.io` domain instead of `$DOCS_URL`: only the shared domain routes `/api/`,
+   `/collaboration/` and `/media/` to the other applications.
+7. If `/docs/<uuid>/` links return the 404 page, the frontend is served by Static Web Server
    instead of Caddy: check `CC_OVERRIDE_BUILDCACHE` and `CC_STATIC_CADDYFILE`.
-7. Login errors usually come from the Keycloak client: check the redirect URIs and the secret.
+8. Login errors usually come from the Keycloak client: check the redirect URIs and the secret.
 
 ## Contributing
 

@@ -28,6 +28,7 @@ and this project adheres to
 - Caddy 2.11.6 and 2.11.7 held back by the 14-day rule (pinned 2.11.4)
 - Python 3.15.0 (2026-10-09) not used: too recent and outside upstream `requires-python`
 - Node.js 26 becomes LTS on 2026-10-28: Node.js 24 stays the latest LTS for now
+- Verified end to end by hand (Keycloak login, document editing in two browsers, image upload, shared links); README troubleshooting now covers the frontend-domain spinner and the harmless `DisallowedHost` health-check error
 - `YARN_IGNORE_ENGINES=true` is needed on Node.js 24 because `i18next-parser` still declares `node <= 22`
 
 ## [Unreleased]
