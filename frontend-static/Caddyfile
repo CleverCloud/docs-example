@@ -1,0 +1,22 @@
+# Serves the Next.js static export of the Docs frontend on the Static runtime.
+# Mirrors src/frontend/apps/impress/conf/default.conf: dynamic routes such as
+# /docs/<uuid>/ are rewritten to the exported [id] page, so shared document
+# links open directly instead of returning the 404 page.
+:{$PORT:8080} {
+	root * {$APP_HOME}/src/frontend/apps/impress/out
+
+	header X-Frame-Options DENY
+
+	@doc path_regexp ^/docs/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/?$
+	rewrite @doc /docs/[id]/index.html
+
+	@reconciliation path_regexp reco ^/user-reconciliations/(active|inactive)/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/?$
+	rewrite @reconciliation /user-reconciliations/{re.reco.1}/[id]/index.html
+
+	file_server
+
+	handle_errors 404 {
+		rewrite * /404.html
+		file_server
+	}
+}
